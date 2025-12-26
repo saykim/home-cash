@@ -1,30 +1,20 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { annualEvents } from "./_lib/schema";
+import { annualEvents } from "./db-schema";
 import { eq } from "drizzle-orm";
-
-function getDb() {
-  const sql = neon(process.env.DATABASE_URL!);
-  return drizzle(sql);
-}
+import { createDb } from "../src/server/vercelDb";
+import { getRequestId, sendError, setCorsHeaders } from "../src/server/vercelHttp";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  setCorsHeaders(res);
 
   if (req.method === "OPTIONS") {
-    return res.status(200).end();
+    return res.status(204).end();
   }
 
-  const db = getDb();
+  const requestId = getRequestId(req);
 
   try {
+    const db = createDb();
     // GET: 전체 연례 이벤트 조회
     if (req.method === "GET") {
       const result = await db.select().from(annualEvents);
@@ -86,10 +76,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(405).json({ error: "Method not allowed" });
   } catch (error) {
-    console.error("Annual Events API error:", error);
-    return res.status(500).json({
-      error: "Internal server error",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
+    return sendError(res, requestId, error);
   }
 }
