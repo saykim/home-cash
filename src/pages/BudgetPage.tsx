@@ -14,6 +14,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
@@ -185,6 +186,9 @@ export default function BudgetPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>예산 설정</DialogTitle>
+            <DialogDescription className="sr-only">
+              카테고리를 선택하고 월별 예산 금액을 입력해 저장합니다.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

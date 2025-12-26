@@ -14,6 +14,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -161,6 +162,9 @@ export default function SettingsPage() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>자산 추가</DialogTitle>
+                      <DialogDescription className="sr-only">
+                        자산명, 유형, 초기 잔액을 입력해 자산을 추가합니다.
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-2">
@@ -311,6 +315,9 @@ export default function SettingsPage() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>카테고리 추가</DialogTitle>
+                      <DialogDescription className="sr-only">
+                        카테고리명과 유형(수입/지출)을 입력해 카테고리를 추가합니다.
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-2">

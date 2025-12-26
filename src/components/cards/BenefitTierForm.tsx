@@ -4,6 +4,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
@@ -53,6 +54,9 @@ export function BenefitTierForm({ cardId }: BenefitTierFormProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>카드 혜택 추가</DialogTitle>
+          <DialogDescription className="sr-only">
+            실적 금액과 혜택 설명을 입력해 카드 혜택 구간을 추가합니다.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

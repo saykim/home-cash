@@ -4,6 +4,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -163,6 +164,9 @@ export function AnnualEventForm({
           <DialogTitle>
             {isEditMode ? "연례 이벤트 수정" : "연례 이벤트 추가"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            이벤트명, 종류, 날짜와 선택 항목(예산 금액/첫 발생 연도/메모)을 입력해 연례 이벤트를 저장합니다.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

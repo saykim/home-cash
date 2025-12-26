@@ -4,6 +4,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
@@ -73,6 +74,9 @@ export function CreditCardForm() {
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>신용카드 추가</DialogTitle>
+          <DialogDescription className="sr-only">
+            카드명과 결제일, 이용 기간, 연결 자산을 입력해 신용카드를 추가합니다.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -13,6 +13,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -87,6 +88,9 @@ export function RecurringTransactionForm() {
             <Repeat className="h-5 w-5" />
             반복 거래 등록
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            반복 거래명, 유형, 금액, 자산, 카테고리, 주기와 시작일을 입력해 반복 거래를 등록합니다.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">

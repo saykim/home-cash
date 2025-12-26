@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -188,6 +189,9 @@ export function TransactionForm({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "거래 수정" : "거래 추가"}</DialogTitle>
+          <DialogDescription className="sr-only">
+            날짜, 금액, 자산과 카테고리(또는 이체 대상)를 입력해 거래를 저장합니다.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
