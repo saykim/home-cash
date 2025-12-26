@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { creditCards } from "./db-schema";
 import { eq } from "drizzle-orm";
-import { createDb } from "../src/server/vercelDb";
-import { getRequestId, sendError, setCorsHeaders } from "../src/server/vercelHttp";
+import { createDb } from "./_lib/vercelDb";
+import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res);
