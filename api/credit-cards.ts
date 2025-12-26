@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { creditCards } from "../src/db/schema";
+import { creditCards } from "./_lib/schema";
 import { eq } from "drizzle-orm";
 
 function getDb() {
