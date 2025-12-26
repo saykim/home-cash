@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { randomUUID } from "node:crypto";
 
 export class HttpError extends Error {
   status: number;
@@ -27,7 +26,11 @@ export function setCorsHeaders(res: VercelResponse) {
 export function getRequestId(req: VercelRequest): string {
   const vercelId = req.headers["x-vercel-id"];
   if (typeof vercelId === "string" && vercelId.trim().length > 0) return vercelId;
-  return randomUUID();
+  // node/edge 모두에서 동작하도록 Web Crypto 기반 UUID를 우선 사용
+  const uuid =
+    (globalThis as any)?.crypto?.randomUUID?.() ??
+    `req_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  return uuid;
 }
 
 type PublicErrorBody = {
