@@ -64,11 +64,7 @@ export default function SettingsPage() {
 
   const handleAddAsset = async () => {
     if (!assetName || !assetBalance) {
-      toast({
-        title: "입력 오류",
-        description: "자산명과 잔액을 입력해주세요.",
-        variant: "destructive",
-      });
+      alert("자산명과 잔액을 입력해주세요.");
       return;
     }
 
@@ -84,10 +80,6 @@ export default function SettingsPage() {
       setAssetBalance("");
       setAssetType("BANK");
       setAssetDialogOpen(false);
-      toast({
-        title: "성공",
-        description: "자산이 추가되었습니다.",
-      });
     } catch (err) {
       toast({
         title: "추가 실패",
