@@ -27,12 +27,14 @@ interface AnnualEventFormProps {
   children?: React.ReactNode;
   editEvent?: AnnualEvent | null;
   onOpenChange?: (open: boolean) => void;
+  onSaved?: (payload: { month: number; day: number }) => void;
 }
 
 export function AnnualEventForm({
   children,
   editEvent = null,
   onOpenChange,
+  onSaved,
 }: AnnualEventFormProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -124,6 +126,7 @@ export function AnnualEventForm({
       await addAnnualEvent(eventData);
     }
 
+    onSaved?.({ month, day });
     handleClose();
   };
 
@@ -132,6 +135,7 @@ export function AnnualEventForm({
     if (!confirm("정말 삭제하시겠습니까?")) return;
 
     await deleteAnnualEvent(editEvent.id);
+    onSaved?.({ month: editEvent.month, day: editEvent.day });
     handleClose();
   };
 

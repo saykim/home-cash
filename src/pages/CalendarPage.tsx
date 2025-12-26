@@ -77,7 +77,7 @@ export default function CalendarPage() {
   const { transactions: prevMonthTransactions } = useTransactions(prevMonthStr);
   const { allCategories } = useCategories();
   const { creditCards } = useCreditCards();
-  const { annualEvents } = useAnnualEvents();
+  const { annualEvents, refetch: refetchAnnualEvents } = useAnnualEvents();
   const { budgets } = useBudgets(monthStr);
 
   // Filter transactions by selected categories
@@ -324,7 +324,15 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">캘린더</h1>
-          <AnnualEventForm>
+          <AnnualEventForm
+            onSaved={({ month, day }) => {
+              // 저장 후 즉시 캘린더가 갱신되고, 해당 월/일로 이동해 사용자가 바로 확인 가능하도록 함
+              refetchAnnualEvents();
+              const target = new Date(currentMonth.getFullYear(), month - 1, day);
+              setCurrentMonth(target);
+              setSelectedDate(target);
+            }}
+          >
             <Button variant="outline" size="sm">
               <Calendar className="h-4 w-4 mr-1" />
               이벤트 추가
@@ -908,6 +916,12 @@ export default function CalendarPage() {
       {editingEvent && (
         <AnnualEventForm
           editEvent={editingEvent}
+          onSaved={({ month, day }) => {
+            refetchAnnualEvents();
+            const target = new Date(currentMonth.getFullYear(), month - 1, day);
+            setCurrentMonth(target);
+            setSelectedDate(target);
+          }}
           onOpenChange={(open) => {
             if (!open) {
               setEditingEvent(null);

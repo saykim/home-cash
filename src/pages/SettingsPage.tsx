@@ -51,6 +51,7 @@ export default function SettingsPage() {
     annualEvents,
     deleteAnnualEvent,
     toggleActiveStatus: toggleEventStatus,
+    refetch: refetchAnnualEvents,
   } = useAnnualEvents();
 
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
@@ -528,7 +529,7 @@ export default function SettingsPage() {
                 <CardTitle className="text-base font-semibold">
                   연례 이벤트
                 </CardTitle>
-                <AnnualEventForm />
+                <AnnualEventForm onSaved={() => refetchAnnualEvents()} />
               </div>
             </CardHeader>
             <CardContent className="p-4">
