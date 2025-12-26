@@ -1,46 +1,85 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/database';
-import type { Asset } from '@/types';
+import { useState, useEffect, useCallback } from "react";
+import { assetsApi } from "@/lib/api";
+import type { Asset } from "@/types";
 
 export function useAssets() {
-  const assets = useLiveQuery(() => db.assets.toArray()) ?? [];
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAssets = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await assetsApi.getAll();
+      // Convert decimal strings to numbers
+      const normalized = data.map((a: any) => ({
+        ...a,
+        balance: Number(a.balance),
+        initialBalance: Number(a.initialBalance),
+      }));
+      setAssets(normalized);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch assets");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
 
   const totalBalance = assets.reduce((sum, a) => sum + a.balance, 0);
 
-  const addAsset = async (data: Omit<Asset, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString();
-    await db.assets.add({
-      ...data,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now
-    });
+  const addAsset = async (
+    data: Omit<Asset, "id" | "createdAt" | "updatedAt">
+  ) => {
+    try {
+      await assetsApi.create(data);
+      await fetchAssets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add asset");
+      throw err;
+    }
   };
 
   const updateAsset = async (id: string, data: Partial<Asset>) => {
-    await db.assets.update(id, { ...data, updatedAt: new Date().toISOString() });
+    try {
+      await assetsApi.update(id, data);
+      await fetchAssets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update asset");
+      throw err;
+    }
   };
 
   const deleteAsset = async (id: string) => {
-    await db.assets.delete(id);
+    try {
+      await assetsApi.delete(id);
+      await fetchAssets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete asset");
+      throw err;
+    }
   };
 
   const updateBalance = async (id: string, delta: number) => {
-    const asset = await db.assets.get(id);
+    const asset = assets.find((a) => a.id === id);
     if (asset) {
-      await db.assets.update(id, {
-        balance: asset.balance + delta,
-        updatedAt: new Date().toISOString()
-      });
+      await updateAsset(id, { balance: asset.balance + delta });
     }
   };
 
   return {
     assets,
     totalBalance,
+    loading,
+    error,
     addAsset,
     updateAsset,
     deleteAsset,
-    updateBalance
+    updateBalance,
+    refetch: fetchAssets,
   };
 }

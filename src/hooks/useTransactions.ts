@@ -1,76 +1,81 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/database';
-import { useAssets } from './useAssets';
-import type { Transaction } from '@/types';
-import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { useState, useEffect, useCallback } from "react";
+import { transactionsApi } from "@/lib/api";
+import type { Transaction } from "@/types";
 
 export function useTransactions(month?: string) {
-  const { updateBalance } = useAssets();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get transactions for a specific month or all
-  const transactions = useLiveQuery(async () => {
-    let query = db.transactions.orderBy('date').reverse();
-
-    if (month) {
-      const start = format(startOfMonth(parseISO(`${month}-01`)), 'yyyy-MM-dd');
-      const end = format(endOfMonth(parseISO(`${month}-01`)), 'yyyy-MM-dd');
-      return query.filter((t) => t.date >= start && t.date <= end).toArray();
+  const fetchTransactions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await transactionsApi.getAll(month ? { month } : undefined);
+      // Convert decimal strings to numbers
+      const normalized = data.map((t: any) => ({
+        ...t,
+        amount: Number(t.amount),
+      }));
+      setTransactions(normalized);
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch transactions"
+      );
+    } finally {
+      setLoading(false);
     }
+  }, [month]);
 
-    return query.toArray();
-  }, [month]) ?? [];
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
-  const addTransaction = async (data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString();
-    const tx: Transaction = {
-      ...data,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now
-    };
-
-    await db.transaction('rw', [db.transactions, db.assets], async () => {
-      await db.transactions.add(tx);
-
-      // Update asset balance
-      if (data.type === 'INCOME') {
-        await updateBalance(data.assetId, data.amount);
-      } else if (data.type === 'EXPENSE') {
-        await updateBalance(data.assetId, -data.amount);
-      } else if (data.type === 'TRANSFER' && data.toAssetId) {
-        await updateBalance(data.assetId, -data.amount);
-        await updateBalance(data.toAssetId, data.amount);
-      }
-    });
+  const addTransaction = async (
+    data: Omit<Transaction, "id" | "createdAt" | "updatedAt">
+  ) => {
+    try {
+      await transactionsApi.create(data);
+      await fetchTransactions();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to add transaction"
+      );
+      throw err;
+    }
   };
 
   const updateTransaction = async (id: string, data: Partial<Transaction>) => {
-    await db.transactions.update(id, { ...data, updatedAt: new Date().toISOString() });
+    try {
+      await transactionsApi.update(id, data);
+      await fetchTransactions();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update transaction"
+      );
+      throw err;
+    }
   };
 
   const deleteTransaction = async (id: string) => {
-    const tx = await db.transactions.get(id);
-    if (!tx) return;
-
-    await db.transaction('rw', [db.transactions, db.assets], async () => {
-      await db.transactions.delete(id);
-
-      // Reverse the balance change
-      if (tx.type === 'INCOME') {
-        await updateBalance(tx.assetId, -tx.amount);
-      } else if (tx.type === 'EXPENSE') {
-        await updateBalance(tx.assetId, tx.amount);
-      } else if (tx.type === 'TRANSFER' && tx.toAssetId) {
-        await updateBalance(tx.assetId, tx.amount);
-        await updateBalance(tx.toAssetId, -tx.amount);
-      }
-    });
+    try {
+      await transactionsApi.delete(id);
+      await fetchTransactions();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete transaction"
+      );
+      throw err;
+    }
   };
 
   return {
     transactions,
+    loading,
+    error,
     addTransaction,
     updateTransaction,
-    deleteTransaction
+    deleteTransaction,
+    refetch: fetchTransactions,
   };
 }

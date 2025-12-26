@@ -1,43 +1,80 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/database';
-import type { AnnualEvent } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import { useState, useEffect, useCallback } from "react";
+import { annualEventsApi } from "@/lib/api";
+import type { AnnualEvent } from "@/types";
 
 export function useAnnualEvents() {
-  // Get all active annual events
-  const annualEvents = useLiveQuery(
-    () => db.annualEvents
-      .filter(e => e.isActive)
-      .toArray(),
-    []
-  ) ?? [];
+  const [allAnnualEvents, setAllAnnualEvents] = useState<AnnualEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const addAnnualEvent = async (data: Omit<AnnualEvent, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString();
-    const newEvent: AnnualEvent = {
-      ...data,
-      id: uuidv4(),
-      createdAt: now,
-      updatedAt: now
-    };
+  const fetchAnnualEvents = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await annualEventsApi.getAll();
+      // Convert decimal strings to numbers
+      const normalized = data.map((e: any) => ({
+        ...e,
+        amount: e.amount ? Number(e.amount) : undefined,
+      }));
+      setAllAnnualEvents(normalized);
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch annual events"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    await db.annualEvents.add(newEvent);
-    return newEvent;
+  useEffect(() => {
+    fetchAnnualEvents();
+  }, [fetchAnnualEvents]);
+
+  // Only return active events by default
+  const annualEvents = allAnnualEvents.filter((e) => e.isActive);
+
+  const addAnnualEvent = async (
+    data: Omit<AnnualEvent, "id" | "createdAt" | "updatedAt">
+  ) => {
+    try {
+      const result = await annualEventsApi.create(data);
+      await fetchAnnualEvents();
+      return result;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to add annual event"
+      );
+      throw err;
+    }
   };
 
   const updateAnnualEvent = async (id: string, data: Partial<AnnualEvent>) => {
-    await db.annualEvents.update(id, {
-      ...data,
-      updatedAt: new Date().toISOString()
-    });
+    try {
+      await annualEventsApi.update(id, data);
+      await fetchAnnualEvents();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update annual event"
+      );
+      throw err;
+    }
   };
 
   const deleteAnnualEvent = async (id: string) => {
-    await db.annualEvents.delete(id);
+    try {
+      await annualEventsApi.delete(id);
+      await fetchAnnualEvents();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete annual event"
+      );
+      throw err;
+    }
   };
 
   const toggleActiveStatus = async (id: string) => {
-    const event = await db.annualEvents.get(id);
+    const event = allAnnualEvents.find((e) => e.id === id);
     if (event) {
       await updateAnnualEvent(id, { isActive: !event.isActive });
     }
@@ -45,9 +82,13 @@ export function useAnnualEvents() {
 
   return {
     annualEvents,
+    allAnnualEvents,
+    loading,
+    error,
     addAnnualEvent,
     updateAnnualEvent,
     deleteAnnualEvent,
-    toggleActiveStatus
+    toggleActiveStatus,
+    refetch: fetchAnnualEvents,
   };
 }

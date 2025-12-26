@@ -1,77 +1,90 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/database';
-import type { Budget } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
-import { format } from 'date-fns';
+import { useState, useEffect, useCallback } from "react";
+import { budgetsApi } from "@/lib/api";
+import type { Budget } from "@/types";
 
 export function useBudgets(month?: string) {
-  const currentMonth = month || format(new Date(), 'yyyy-MM');
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const budgets = useLiveQuery(
-    () => {
-      if (month) {
-        return db.budgets.where('month').equals(currentMonth).toArray();
-      }
-      return db.budgets.toArray();
-    },
-    [currentMonth]
-  ) || [];
-
-  const addBudget = async (categoryId: string, amount: number, targetMonth: string) => {
-    const now = new Date().toISOString();
-
-    // Check if budget already exists for this category and month
-    const existing = await db.budgets
-      .where('[categoryId+month]')
-      .equals([categoryId, targetMonth])
-      .first();
-
-    if (existing) {
-      // Update existing budget
-      await db.budgets.update(existing.id, {
-        amount,
-        updatedAt: now
-      });
-      return existing;
+  const fetchBudgets = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await budgetsApi.getAll(month);
+      // Convert decimal strings to numbers
+      const normalized = data.map((b: any) => ({
+        ...b,
+        amount: Number(b.amount),
+      }));
+      setBudgets(normalized);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch budgets");
+    } finally {
+      setLoading(false);
     }
+  }, [month]);
 
-    // Create new budget
-    const newBudget: Budget = {
-      id: uuidv4(),
-      categoryId,
-      amount,
-      month: targetMonth,
-      createdAt: now,
-      updatedAt: now
-    };
+  useEffect(() => {
+    fetchBudgets();
+  }, [fetchBudgets]);
 
-    await db.budgets.add(newBudget);
-    return newBudget;
+  const addBudget = async (
+    categoryId: string,
+    amount: number,
+    targetMonth: string
+  ) => {
+    try {
+      const result = await budgetsApi.create({
+        categoryId,
+        amount,
+        month: targetMonth,
+      });
+      await fetchBudgets();
+      return result;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add budget");
+      throw err;
+    }
   };
 
   const updateBudget = async (id: string, amount: number) => {
-    await db.budgets.update(id, {
-      amount,
-      updatedAt: new Date().toISOString()
-    });
+    try {
+      await budgetsApi.update(id, { amount });
+      await fetchBudgets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update budget");
+      throw err;
+    }
   };
 
   const deleteBudget = async (id: string) => {
-    await db.budgets.delete(id);
+    try {
+      await budgetsApi.delete(id);
+      await fetchBudgets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete budget");
+      throw err;
+    }
   };
 
-  const getBudgetByCategory = async (categoryId: string, targetMonth: string) => {
-    return await db.budgets
-      .where('[categoryId+month]')
-      .equals([categoryId, targetMonth])
-      .first();
+  const getBudgetByCategory = async (
+    categoryId: string,
+    targetMonth: string
+  ) => {
+    return budgets.find(
+      (b) => b.categoryId === categoryId && b.month === targetMonth
+    );
   };
 
   return {
     budgets,
+    loading,
+    error,
     addBudget,
     updateBudget,
     deleteBudget,
-    getBudgetByCategory
+    getBudgetByCategory,
+    refetch: fetchBudgets,
   };
 }

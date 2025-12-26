@@ -1,0 +1,85 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { creditCards } from "../src/db/schema";
+import { eq } from "drizzle-orm";
+
+function getDb() {
+  const sql = neon(process.env.DATABASE_URL!);
+  return drizzle(sql);
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  const db = getDb();
+
+  try {
+    // GET: 전체 신용카드 조회
+    if (req.method === "GET") {
+      const result = await db.select().from(creditCards);
+      return res.status(200).json(result);
+    }
+
+    // POST: 신용카드 추가
+    if (req.method === "POST") {
+      const data = req.body;
+      const result = await db
+        .insert(creditCards)
+        .values({
+          name: data.name,
+          billingDay: data.billingDay,
+          startOffset: data.startOffset,
+          startDay: data.startDay,
+          endOffset: data.endOffset,
+          endDay: data.endDay,
+          linkedAssetId: data.linkedAssetId,
+        })
+        .returning();
+      return res.status(201).json(result[0]);
+    }
+
+    // PUT: 신용카드 수정
+    if (req.method === "PUT") {
+      const { id } = req.query;
+      const data = req.body;
+      if (!id || typeof id !== "string") {
+        return res.status(400).json({ error: "Missing id" });
+      }
+      const result = await db
+        .update(creditCards)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(creditCards.id, id))
+        .returning();
+      return res.status(200).json(result[0]);
+    }
+
+    // DELETE: 신용카드 삭제
+    if (req.method === "DELETE") {
+      const { id } = req.query;
+      if (!id || typeof id !== "string") {
+        return res.status(400).json({ error: "Missing id" });
+      }
+      await db.delete(creditCards).where(eq(creditCards.id, id));
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(405).json({ error: "Method not allowed" });
+  } catch (error) {
+    console.error("Credit Cards API error:", error);
+    return res.status(500).json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+}

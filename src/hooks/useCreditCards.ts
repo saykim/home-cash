@@ -1,63 +1,105 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/database';
-import type { CreditCard, BenefitTier } from '@/types';
+import { useState, useEffect, useCallback } from "react";
+import { creditCardsApi } from "@/lib/api";
+import type { CreditCard, BenefitTier } from "@/types";
 
 export function useCreditCards() {
-  const creditCards = useLiveQuery(() => db.creditCards.toArray()) ?? [];
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const addCreditCard = async (data: Omit<CreditCard, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString();
-    await db.creditCards.add({
-      ...data,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now
-    });
+  const fetchCreditCards = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await creditCardsApi.getAll();
+      setCreditCards(data);
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch credit cards"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCreditCards();
+  }, [fetchCreditCards]);
+
+  const addCreditCard = async (
+    data: Omit<CreditCard, "id" | "createdAt" | "updatedAt">
+  ) => {
+    try {
+      await creditCardsApi.create(data);
+      await fetchCreditCards();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to add credit card"
+      );
+      throw err;
+    }
   };
 
   const updateCreditCard = async (id: string, data: Partial<CreditCard>) => {
-    await db.creditCards.update(id, { ...data, updatedAt: new Date().toISOString() });
+    try {
+      await creditCardsApi.update(id, data);
+      await fetchCreditCards();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update credit card"
+      );
+      throw err;
+    }
   };
 
   const deleteCreditCard = async (id: string) => {
-    // Delete associated benefit tiers first
-    const tiers = await db.benefitTiers.where('cardId').equals(id).toArray();
-    await Promise.all(tiers.map((tier) => db.benefitTiers.delete(tier.id)));
-
-    // Delete the card
-    await db.creditCards.delete(id);
+    try {
+      await creditCardsApi.delete(id);
+      await fetchCreditCards();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete credit card"
+      );
+      throw err;
+    }
   };
 
   return {
     creditCards,
+    loading,
+    error,
     addCreditCard,
     updateCreditCard,
-    deleteCreditCard
+    deleteCreditCard,
+    refetch: fetchCreditCards,
   };
 }
 
+// Note: BenefitTiers API not yet implemented - can be added if needed
 export function useBenefitTiers(cardId?: string) {
-  const allTiers = useLiveQuery(() => db.benefitTiers.toArray()) ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [allTiers, _setAllTiers] = useState<BenefitTier[]>([]);
 
-  const tiers = cardId
-    ? allTiers.filter((t) => t.cardId === cardId)
-    : allTiers;
+  const tiers = cardId ? allTiers.filter((t) => t.cardId === cardId) : allTiers;
 
-  const addBenefitTier = async (data: Omit<BenefitTier, 'id' | 'createdAt'>) => {
-    const now = new Date().toISOString();
-    await db.benefitTiers.add({
-      ...data,
-      id: crypto.randomUUID(),
-      createdAt: now
-    });
+  const addBenefitTier = async (
+    _data: Omit<BenefitTier, "id" | "createdAt">
+  ) => {
+    // TODO: Implement API call
+    console.warn("useBenefitTiers API not yet implemented");
   };
 
-  const updateBenefitTier = async (id: string, data: Partial<BenefitTier>) => {
-    await db.benefitTiers.update(id, data);
+  const updateBenefitTier = async (
+    _id: string,
+    _data: Partial<BenefitTier>
+  ) => {
+    // TODO: Implement API call
+    console.warn("useBenefitTiers API not yet implemented");
   };
 
-  const deleteBenefitTier = async (id: string) => {
-    await db.benefitTiers.delete(id);
+  const deleteBenefitTier = async (_id: string) => {
+    // TODO: Implement API call
+    console.warn("useBenefitTiers API not yet implemented");
   };
 
   return {
@@ -65,6 +107,6 @@ export function useBenefitTiers(cardId?: string) {
     allTiers,
     addBenefitTier,
     updateBenefitTier,
-    deleteBenefitTier
+    deleteBenefitTier,
   };
 }

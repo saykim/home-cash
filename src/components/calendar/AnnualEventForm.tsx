@@ -1,25 +1,26 @@
-import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { useAnnualEvents } from '@/hooks/useAnnualEvents';
-import type { EventType, AnnualEvent } from '@/types';
+  SelectValue,
+} from "@/components/ui/select";
+import { useAnnualEvents } from "@/hooks/useAnnualEvents";
+import { formatAmountInput, parseFormattedAmount } from "@/lib/utils";
+import type { EventType, AnnualEvent } from "@/types";
 
 interface AnnualEventFormProps {
   children?: React.ReactNode;
@@ -27,17 +28,22 @@ interface AnnualEventFormProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function AnnualEventForm({ children, editEvent = null, onOpenChange }: AnnualEventFormProps) {
+export function AnnualEventForm({
+  children,
+  editEvent = null,
+  onOpenChange,
+}: AnnualEventFormProps) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [type, setType] = useState<EventType>('BIRTHDAY');
+  const [name, setName] = useState("");
+  const [type, setType] = useState<EventType>("BIRTHDAY");
   const [month, setMonth] = useState(1);
   const [day, setDay] = useState(1);
-  const [amount, setAmount] = useState('');
-  const [firstYear, setFirstYear] = useState('');
-  const [memo, setMemo] = useState('');
+  const [amount, setAmount] = useState("");
+  const [firstYear, setFirstYear] = useState("");
+  const [memo, setMemo] = useState("");
 
-  const { addAnnualEvent, updateAnnualEvent, deleteAnnualEvent } = useAnnualEvents();
+  const { addAnnualEvent, updateAnnualEvent, deleteAnnualEvent } =
+    useAnnualEvents();
   const isEditMode = Boolean(editEvent);
 
   // Calculate maximum days in selected month (use 2024 as reference for leap year)
@@ -59,18 +65,20 @@ export function AnnualEventForm({ children, editEvent = null, onOpenChange }: An
         setType(editEvent.type);
         setMonth(editEvent.month);
         setDay(editEvent.day);
-        setAmount(editEvent.amount ? String(editEvent.amount) : '');
-        setFirstYear(editEvent.firstYear ? String(editEvent.firstYear) : '');
-        setMemo(editEvent.memo || '');
+        setAmount(
+          editEvent.amount ? formatAmountInput(String(editEvent.amount)) : ""
+        );
+        setFirstYear(editEvent.firstYear ? String(editEvent.firstYear) : "");
+        setMemo(editEvent.memo || "");
       } else {
         // Add mode - reset to defaults
-        setName('');
-        setType('BIRTHDAY');
+        setName("");
+        setType("BIRTHDAY");
         setMonth(1);
         setDay(1);
-        setAmount('');
-        setFirstYear('');
-        setMemo('');
+        setAmount("");
+        setFirstYear("");
+        setMemo("");
       }
     }
   }, [open, editEvent]);
@@ -86,7 +94,7 @@ export function AnnualEventForm({ children, editEvent = null, onOpenChange }: An
     e.preventDefault();
 
     if (!name.trim()) {
-      alert('이벤트명을 입력해주세요.');
+      alert("이벤트명을 입력해주세요.");
       return;
     }
 
@@ -101,10 +109,10 @@ export function AnnualEventForm({ children, editEvent = null, onOpenChange }: An
       type,
       month,
       day,
-      amount: amount ? Number(amount) : undefined,
+      amount: amount ? parseFormattedAmount(amount) : undefined,
       firstYear: firstYear ? Number(firstYear) : undefined,
       memo: memo.trim() || undefined,
-      isActive: true
+      isActive: true,
     };
 
     if (isEditMode && editEvent) {
@@ -120,7 +128,7 @@ export function AnnualEventForm({ children, editEvent = null, onOpenChange }: An
 
   const handleDelete = async () => {
     if (!editEvent) return;
-    if (!confirm('정말 삭제하시겠습니까?')) return;
+    if (!confirm("정말 삭제하시겠습니까?")) return;
 
     await deleteAnnualEvent(editEvent.id);
     handleClose();
@@ -152,7 +160,9 @@ export function AnnualEventForm({ children, editEvent = null, onOpenChange }: An
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? '연례 이벤트 수정' : '연례 이벤트 추가'}</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? "연례 이벤트 수정" : "연례 이벤트 추가"}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -189,7 +199,10 @@ export function AnnualEventForm({ children, editEvent = null, onOpenChange }: An
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="month">월 *</Label>
-              <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+              <Select
+                value={String(month)}
+                onValueChange={(v) => setMonth(Number(v))}
+              >
                 <SelectTrigger id="month">
                   <SelectValue />
                 </SelectTrigger>
@@ -205,16 +218,21 @@ export function AnnualEventForm({ children, editEvent = null, onOpenChange }: An
 
             <div className="space-y-2">
               <Label htmlFor="day">일 *</Label>
-              <Select value={String(day)} onValueChange={(v) => setDay(Number(v))}>
+              <Select
+                value={String(day)}
+                onValueChange={(v) => setDay(Number(v))}
+              >
                 <SelectTrigger id="day">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: maxDaysInMonth }, (_, i) => i + 1).map((d) => (
-                    <SelectItem key={d} value={String(d)}>
-                      {d}일
-                    </SelectItem>
-                  ))}
+                  {Array.from({ length: maxDaysInMonth }, (_, i) => i + 1).map(
+                    (d) => (
+                      <SelectItem key={d} value={String(d)}>
+                        {d}일
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
@@ -228,11 +246,11 @@ export function AnnualEventForm({ children, editEvent = null, onOpenChange }: An
             <Label htmlFor="amount">예산 금액 (선택)</Label>
             <Input
               id="amount"
-              type="number"
-              placeholder="예: 50000"
+              type="text"
+              inputMode="numeric"
+              placeholder="예: 50,000"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              min="0"
+              onChange={(e) => setAmount(formatAmountInput(e.target.value))}
             />
             <p className="text-xs text-muted-foreground">
               생일 선물, 경조사비 등의 예상 금액
@@ -269,16 +287,26 @@ export function AnnualEventForm({ children, editEvent = null, onOpenChange }: An
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              className="flex-1"
+            >
               취소
             </Button>
             {isEditMode && (
-              <Button type="button" variant="destructive" onClick={handleDelete} className="flex-1">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                className="flex-1"
+              >
                 삭제
               </Button>
             )}
             <Button type="submit" className="flex-1">
-              {isEditMode ? '수정' : '추가'}
+              {isEditMode ? "수정" : "추가"}
             </Button>
           </div>
         </form>

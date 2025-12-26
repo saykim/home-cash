@@ -1,26 +1,27 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog';
-import { useRecurringTransactions } from '@/hooks/useRecurringTransactions';
-import { useAssets } from '@/hooks/useAssets';
-import { useCategories } from '@/hooks/useCategories';
-import { Plus, Repeat } from 'lucide-react';
-import type { TransactionType, RecurringFrequency } from '@/types';
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
+import { useAssets } from "@/hooks/useAssets";
+import { useCategories } from "@/hooks/useCategories";
+import { formatAmountInput, parseFormattedAmount } from "@/lib/utils";
+import { Plus, Repeat } from "lucide-react";
+import type { TransactionType, RecurringFrequency } from "@/types";
 
 export function RecurringTransactionForm() {
   const { addRecurringTransaction } = useRecurringTransactions();
@@ -28,47 +29,49 @@ export function RecurringTransactionForm() {
   const { incomeCategories, expenseCategories } = useCategories();
 
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [type, setType] = useState<TransactionType>('EXPENSE');
-  const [amount, setAmount] = useState('');
-  const [assetId, setAssetId] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [frequency, setFrequency] = useState<RecurringFrequency>('MONTHLY');
-  const [dayOfMonth, setDayOfMonth] = useState('1');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [memo, setMemo] = useState('');
+  const [name, setName] = useState("");
+  const [type, setType] = useState<TransactionType>("EXPENSE");
+  const [amount, setAmount] = useState("");
+  const [assetId, setAssetId] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [frequency, setFrequency] = useState<RecurringFrequency>("MONTHLY");
+  const [dayOfMonth, setDayOfMonth] = useState("1");
+  const [startDate, setStartDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [memo, setMemo] = useState("");
 
   const handleSubmit = async () => {
     if (!name || !amount || !assetId || !categoryId) {
-      alert('모든 필수 항목을 입력해주세요.');
+      alert("모든 필수 항목을 입력해주세요.");
       return;
     }
 
     await addRecurringTransaction({
       name,
       type,
-      amount: Number(amount),
+      amount: parseFormattedAmount(amount),
       assetId,
       categoryId,
       frequency,
       startDate,
-      dayOfMonth: frequency === 'MONTHLY' ? Number(dayOfMonth) : undefined,
+      dayOfMonth: frequency === "MONTHLY" ? Number(dayOfMonth) : undefined,
       isActive: true,
-      memo
+      memo,
     });
 
     // Reset form
-    setName('');
-    setAmount('');
-    setAssetId('');
-    setCategoryId('');
-    setFrequency('MONTHLY');
-    setDayOfMonth('1');
-    setMemo('');
+    setName("");
+    setAmount("");
+    setAssetId("");
+    setCategoryId("");
+    setFrequency("MONTHLY");
+    setDayOfMonth("1");
+    setMemo("");
     setOpen(false);
   };
 
-  const categories = type === 'INCOME' ? incomeCategories : expenseCategories;
+  const categories = type === "INCOME" ? incomeCategories : expenseCategories;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -99,7 +102,10 @@ export function RecurringTransactionForm() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="type">유형 *</Label>
-              <Select value={type} onValueChange={(v) => setType(v as TransactionType)}>
+              <Select
+                value={type}
+                onValueChange={(v) => setType(v as TransactionType)}
+              >
                 <SelectTrigger id="type">
                   <SelectValue />
                 </SelectTrigger>
@@ -114,9 +120,10 @@ export function RecurringTransactionForm() {
               <Label htmlFor="amount">금액 *</Label>
               <Input
                 id="amount"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => setAmount(formatAmountInput(e.target.value))}
                 placeholder="0"
               />
             </div>
@@ -157,7 +164,10 @@ export function RecurringTransactionForm() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="frequency">반복 주기 *</Label>
-              <Select value={frequency} onValueChange={(v) => setFrequency(v as RecurringFrequency)}>
+              <Select
+                value={frequency}
+                onValueChange={(v) => setFrequency(v as RecurringFrequency)}
+              >
                 <SelectTrigger id="frequency">
                   <SelectValue />
                 </SelectTrigger>
@@ -170,7 +180,7 @@ export function RecurringTransactionForm() {
               </Select>
             </div>
 
-            {frequency === 'MONTHLY' && (
+            {frequency === "MONTHLY" && (
               <div className="space-y-2">
                 <Label htmlFor="dayOfMonth">매월 일자</Label>
                 <Input

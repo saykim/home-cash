@@ -1,40 +1,90 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/database';
-import type { RecurringTransaction } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import { useState, useEffect, useCallback } from "react";
+import { recurringTransactionsApi } from "@/lib/api";
+import type { RecurringTransaction } from "@/types";
 
 export function useRecurringTransactions() {
-  const recurringTransactions = useLiveQuery(
-    () => db.recurringTransactions.orderBy('createdAt').reverse().toArray(),
-    []
-  ) || [];
+  const [recurringTransactions, setRecurringTransactions] = useState<
+    RecurringTransaction[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const addRecurringTransaction = async (data: Omit<RecurringTransaction, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString();
-    const newRecurring: RecurringTransaction = {
-      ...data,
-      id: uuidv4(),
-      createdAt: now,
-      updatedAt: now
-    };
+  const fetchRecurringTransactions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await recurringTransactionsApi.getAll();
+      // Convert decimal strings to numbers
+      const normalized = data.map((r: any) => ({
+        ...r,
+        amount: Number(r.amount),
+      }));
+      setRecurringTransactions(normalized);
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch recurring transactions"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    await db.recurringTransactions.add(newRecurring);
-    return newRecurring;
+  useEffect(() => {
+    fetchRecurringTransactions();
+  }, [fetchRecurringTransactions]);
+
+  const addRecurringTransaction = async (
+    data: Omit<RecurringTransaction, "id" | "createdAt" | "updatedAt">
+  ) => {
+    try {
+      const result = await recurringTransactionsApi.create(data);
+      await fetchRecurringTransactions();
+      return result;
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to add recurring transaction"
+      );
+      throw err;
+    }
   };
 
-  const updateRecurringTransaction = async (id: string, data: Partial<RecurringTransaction>) => {
-    await db.recurringTransactions.update(id, {
-      ...data,
-      updatedAt: new Date().toISOString()
-    });
+  const updateRecurringTransaction = async (
+    id: string,
+    data: Partial<RecurringTransaction>
+  ) => {
+    try {
+      await recurringTransactionsApi.update(id, data);
+      await fetchRecurringTransactions();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update recurring transaction"
+      );
+      throw err;
+    }
   };
 
   const deleteRecurringTransaction = async (id: string) => {
-    await db.recurringTransactions.delete(id);
+    try {
+      await recurringTransactionsApi.delete(id);
+      await fetchRecurringTransactions();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete recurring transaction"
+      );
+      throw err;
+    }
   };
 
   const toggleActiveStatus = async (id: string) => {
-    const recurring = await db.recurringTransactions.get(id);
+    const recurring = recurringTransactions.find((r) => r.id === id);
     if (recurring) {
       await updateRecurringTransaction(id, { isActive: !recurring.isActive });
     }
@@ -42,9 +92,12 @@ export function useRecurringTransactions() {
 
   return {
     recurringTransactions,
+    loading,
+    error,
     addRecurringTransaction,
     updateRecurringTransaction,
     deleteRecurringTransaction,
-    toggleActiveStatus
+    toggleActiveStatus,
+    refetch: fetchRecurringTransactions,
   };
 }
