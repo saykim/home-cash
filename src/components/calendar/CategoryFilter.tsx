@@ -1,8 +1,7 @@
-import { X, Filter, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import type { Category } from '@/types';
+import { X, Filter } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import type { Category } from "@/types";
 
 interface CategoryFilterProps {
   categories: Category[];
@@ -15,9 +14,9 @@ export function CategoryFilter({
   categories,
   selectedCategoryIds,
   onToggle,
-  onClear
+  onClear,
 }: CategoryFilterProps) {
-  const expenseCategories = categories.filter((c) => c.kind === 'EXPENSE');
+  const expenseCategories = categories.filter((c) => c.kind === "EXPENSE");
 
   if (expenseCategories.length === 0) {
     return null;
@@ -64,30 +63,32 @@ export function CategoryFilter({
         <div className="flex flex-wrap gap-1.5">
           {expenseCategories.map((category) => {
             const isSelected = selectedCategoryIds.has(category.id);
-            const categoryColor = category.color || '#ec4899';
+            const categoryColor = category.color || "#ec4899";
 
             return (
               <button
                 key={category.id}
                 onClick={() => onToggle(category.id)}
                 className={cn(
-                  'group relative px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-200',
-                  'hover:scale-105 active:scale-95 hover:-translate-y-0.5',
-                  'focus:outline-none focus:ring-1 focus:ring-pink-400/50 focus:ring-offset-1',
+                  "group relative px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-200",
+                  "hover:scale-105 active:scale-95 hover:-translate-y-0.5",
+                  "focus:outline-none focus:ring-1 focus:ring-pink-400/50 focus:ring-offset-1",
                   isSelected
-                    ? 'bg-gradient-to-br from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/40'
-                    : 'bg-white/80 dark:bg-gray-900/80 text-gray-700 dark:text-gray-300 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:border-pink-300/50 dark:hover:border-pink-700/50 hover:shadow-md shadow-sm'
+                    ? "bg-gradient-to-br from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/40"
+                    : "bg-white/80 dark:bg-gray-900/80 text-gray-700 dark:text-gray-300 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:border-pink-300/50 dark:hover:border-pink-700/50 hover:shadow-md shadow-sm"
                 )}
                 style={
                   isSelected && category.color
                     ? {
                         background: `linear-gradient(135deg, ${categoryColor}ee, ${categoryColor})`,
-                        boxShadow: `0 4px 12px -2px ${categoryColor}40`
+                        boxShadow: `0 4px 12px -2px ${categoryColor}40`,
                       }
                     : undefined
                 }
               >
-                <span className="relative z-10 drop-shadow-sm">{category.name}</span>
+                <span className="relative z-10 drop-shadow-sm">
+                  {category.name}
+                </span>
                 {isSelected && (
                   <X className="ml-1 h-2.5 w-2.5 inline drop-shadow" />
                 )}
