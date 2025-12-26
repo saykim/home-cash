@@ -81,10 +81,10 @@ export default function SettingsPage() {
       setAssetType("BANK");
       setAssetDialogOpen(false);
     } catch (err) {
-      toast({
       alert(
         err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
       );
+    }
     }
   };
 
