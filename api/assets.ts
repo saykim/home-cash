@@ -5,7 +5,11 @@ import { assets } from "./_lib/schema";
 import { eq } from "drizzle-orm";
 
 function getDb() {
-  const sql = neon(process.env.DATABASE_URL!);
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL is missing!");
+    throw new Error("DATABASE_URL is not defined in environment variables");
+  }
+  const sql = neon(process.env.DATABASE_URL);
   return drizzle(sql);
 }
 

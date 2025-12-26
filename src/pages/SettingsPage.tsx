@@ -1,98 +1,144 @@
-import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog';
-import { useAssets } from '@/hooks/useAssets';
-import { useCategories } from '@/hooks/useCategories';
-import { useRecurringTransactions } from '@/hooks/useRecurringTransactions';
-import { useAnnualEvents } from '@/hooks/useAnnualEvents';
-import { RecurringTransactionForm } from '@/components/transactions/RecurringTransactionForm';
-import { AnnualEventForm } from '@/components/calendar/AnnualEventForm';
-import { EventListItem } from '@/components/calendar/EventListItem';
-import { formatCurrency } from '@/lib/formatters';
-import { groupEventsByType, getEventTypeLabel } from '@/lib/eventUtils';
-import { Wallet, Plus, Trash2, Repeat, Power, PowerOff, Calendar } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { AssetType, CategoryKind, EventType } from '@/types';
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useAssets } from "@/hooks/useAssets";
+import { useCategories } from "@/hooks/useCategories";
+import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
+import { useAnnualEvents } from "@/hooks/useAnnualEvents";
+import { RecurringTransactionForm } from "@/components/transactions/RecurringTransactionForm";
+import { AnnualEventForm } from "@/components/calendar/AnnualEventForm";
+import { EventListItem } from "@/components/calendar/EventListItem";
+import { formatCurrency } from "@/lib/formatters";
+import { groupEventsByType, getEventTypeLabel } from "@/lib/eventUtils";
+import {
+  Wallet,
+  Plus,
+  Trash2,
+  Repeat,
+  Power,
+  PowerOff,
+  Calendar,
+  AlertCircle,
+} from "lucide-react";
+import { cn, formatAmountInput, parseFormattedAmount } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import type { AssetType, CategoryKind, EventType } from "@/types";
 
 export default function SettingsPage() {
   const { assets, addAsset, deleteAsset } = useAssets();
   const { allCategories, addCategory, deleteCategory } = useCategories();
-  const { recurringTransactions, deleteRecurringTransaction, toggleActiveStatus } = useRecurringTransactions();
-  const { annualEvents, deleteAnnualEvent, toggleActiveStatus: toggleEventStatus } = useAnnualEvents();
+  const {
+    recurringTransactions,
+    deleteRecurringTransaction,
+    toggleActiveStatus,
+  } = useRecurringTransactions();
+  const {
+    annualEvents,
+    deleteAnnualEvent,
+    toggleActiveStatus: toggleEventStatus,
+  } = useAnnualEvents();
+  const { toast } = useToast();
 
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
-  const [assetName, setAssetName] = useState('');
-  const [assetType, setAssetType] = useState<AssetType>('BANK');
-  const [assetBalance, setAssetBalance] = useState('');
+  const [assetName, setAssetName] = useState("");
+  const [assetType, setAssetType] = useState<AssetType>("BANK");
+  const [assetBalance, setAssetBalance] = useState("");
 
-  const [categoryName, setCategoryName] = useState('');
-  const [categoryKind, setCategoryKind] = useState<CategoryKind>('EXPENSE');
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryKind, setCategoryKind] = useState<CategoryKind>("EXPENSE");
 
   const handleAddAsset = async () => {
     if (!assetName || !assetBalance) {
-      alert('자산명과 잔액을 입력해주세요.');
+      toast({
+        title: "입력 오류",
+        description: "자산명과 잔액을 입력해주세요.",
+        variant: "destructive",
+      });
       return;
     }
 
-    await addAsset({
-      name: assetName,
-      type: assetType,
-      balance: Number(assetBalance),
-      initialBalance: Number(assetBalance)
-    });
+    try {
+      await addAsset({
+        name: assetName,
+        type: assetType,
+        balance: parseFormattedAmount(assetBalance),
+        initialBalance: parseFormattedAmount(assetBalance),
+      });
 
-    setAssetName('');
-    setAssetBalance('');
-    setAssetType('BANK');
-    setAssetDialogOpen(false);
+      setAssetName("");
+      setAssetBalance("");
+      setAssetType("BANK");
+      setAssetDialogOpen(false);
+      toast({
+        title: "성공",
+        description: "자산이 추가되었습니다.",
+      });
+    } catch (err) {
+      toast({
+        title: "추가 실패",
+        description:
+          err instanceof Error
+            ? err.message
+            : "알 수 없는 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteAsset = async (id: string) => {
-    if (confirm('이 자산을 삭제하시겠습니까? 관련된 거래도 모두 삭제됩니다.')) {
+    if (confirm("이 자산을 삭제하시겠습니까? 관련된 거래도 모두 삭제됩니다.")) {
       await deleteAsset(id);
     }
   };
 
   const handleAddCategory = async () => {
     if (!categoryName) {
-      alert('카테고리명을 입력해주세요.');
+      alert("카테고리명을 입력해주세요.");
       return;
     }
 
-    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
+    const colors = [
+      "#ef4444",
+      "#f97316",
+      "#eab308",
+      "#22c55e",
+      "#3b82f6",
+      "#8b5cf6",
+      "#ec4899",
+    ];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
     await addCategory({
       name: categoryName,
       kind: categoryKind,
-      color: randomColor
+      color: randomColor,
     });
 
-    setCategoryName('');
-    setCategoryKind('EXPENSE');
+    setCategoryName("");
+    setCategoryKind("EXPENSE");
     setCategoryDialogOpen(false);
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (confirm('이 카테고리를 삭제하시겠습니까?')) {
+    if (confirm("이 카테고리를 삭제하시겠습니까?")) {
       await deleteCategory(id);
     }
   };
@@ -115,84 +161,132 @@ export default function SettingsPage() {
           <Card className="border">
             <CardHeader className="pb-3 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">자산 관리</CardTitle>
-                <Dialog open={assetDialogOpen} onOpenChange={setAssetDialogOpen}>
+                <CardTitle className="text-base font-semibold">
+                  자산 관리
+                </CardTitle>
+                <Dialog
+                  open={assetDialogOpen}
+                  onOpenChange={setAssetDialogOpen}
+                >
                   <DialogTrigger asChild>
                     <Button size="sm">
                       <Plus className="h-4 w-4 mr-1" />
                       추가
                     </Button>
                   </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>자산 추가</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="asset-name">자산명</Label>
-                  <Input id="asset-name" value={assetName} onChange={(e) => setAssetName(e.target.value)} placeholder="예: 신한은행 주거래 통장" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="asset-type">유형</Label>
-                  <Select value={assetType} onValueChange={(v) => setAssetType(v as AssetType)}>
-                    <SelectTrigger id="asset-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BANK">계좌</SelectItem>
-                      <SelectItem value="CASH">현금</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="asset-balance">초기 잔액</Label>
-                  <Input id="asset-balance" type="number" value={assetBalance} onChange={(e) => setAssetBalance(e.target.value)} placeholder="0" />
-                </div>
-                <Button onClick={handleAddAsset} className="w-full">
-                  저장
-                </Button>
-              </div>
-            </DialogContent>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>자산 추가</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="asset-name">자산명</Label>
+                        <Input
+                          id="asset-name"
+                          value={assetName}
+                          onChange={(e) => setAssetName(e.target.value)}
+                          placeholder="예: 신한은행 주거래 통장"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="asset-type">유형</Label>
+                        <Select
+                          value={assetType}
+                          onValueChange={(v) => setAssetType(v as AssetType)}
+                        >
+                          <SelectTrigger id="asset-type">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="BANK">계좌</SelectItem>
+                            <SelectItem value="CASH">현금</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="asset-balance">초기 잔액</Label>
+                        <Input
+                          id="asset-balance"
+                          type="text"
+                          inputMode="numeric"
+                          value={assetBalance}
+                          onChange={(e) =>
+                            setAssetBalance(formatAmountInput(e.target.value))
+                          }
+                          placeholder="0"
+                          className="text-right"
+                        />
+                      </div>
+                      <Button onClick={handleAddAsset} className="w-full">
+                        저장
+                      </Button>
+                    </div>
+                  </DialogContent>
                 </Dialog>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               {assets.length === 0 ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">등록된 자산이 없습니다</div>
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  등록된 자산이 없습니다
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b bg-muted/30">
-                        <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">자산명</th>
-                        <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">유형</th>
-                        <th className="text-right py-4 px-5 text-sm font-medium text-muted-foreground">잔액</th>
+                        <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">
+                          자산명
+                        </th>
+                        <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">
+                          유형
+                        </th>
+                        <th className="text-right py-4 px-5 text-sm font-medium text-muted-foreground">
+                          잔액
+                        </th>
                         <th className="text-right py-4 px-5 text-sm font-medium text-muted-foreground w-16"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {assets.map((asset) => (
-                        <tr key={asset.id} className="group hover:bg-muted/30 hover:shadow-sm transition-all cursor-pointer relative">
+                        <tr
+                          key={asset.id}
+                          className="group hover:bg-muted/30 hover:shadow-sm transition-all cursor-pointer relative"
+                        >
                           <td className="relative py-4 px-5">
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover:opacity-100 transition-opacity rounded-r" />
                             <div className="flex items-center gap-3">
-                              <div className={cn(
-                                'p-2 rounded-lg',
-                                asset.type === 'BANK' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-amber-100 dark:bg-amber-900/30'
-                              )}>
-                                <Wallet className={cn(
-                                  'h-4 w-4',
-                                  asset.type === 'BANK' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'
-                                )} />
+                              <div
+                                className={cn(
+                                  "p-2 rounded-lg",
+                                  asset.type === "BANK"
+                                    ? "bg-blue-100 dark:bg-blue-900/30"
+                                    : "bg-amber-100 dark:bg-amber-900/30"
+                                )}
+                              >
+                                <Wallet
+                                  className={cn(
+                                    "h-4 w-4",
+                                    asset.type === "BANK"
+                                      ? "text-blue-600 dark:text-blue-400"
+                                      : "text-amber-600 dark:text-amber-400"
+                                  )}
+                                />
                               </div>
-                              <span className="font-medium text-base">{asset.name}</span>
+                              <span className="font-medium text-base">
+                                {asset.name}
+                              </span>
                             </div>
                           </td>
                           <td className="py-4 px-5">
-                            <span className="text-sm text-muted-foreground">{asset.type === 'BANK' ? '계좌' : '현금'}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {asset.type === "BANK" ? "계좌" : "현금"}
+                            </span>
                           </td>
                           <td className="py-4 px-5 text-right">
-                            <span className="font-bold text-base tabular-nums">{formatCurrency(asset.balance)}</span>
+                            <span className="font-bold text-base tabular-nums">
+                              {formatCurrency(asset.balance)}
+                            </span>
                           </td>
                           <td className="py-4 px-5 text-right">
                             <Button
@@ -217,40 +311,55 @@ export default function SettingsPage() {
           <Card className="border">
             <CardHeader className="pb-3 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">카테고리 관리</CardTitle>
-                <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+                <CardTitle className="text-base font-semibold">
+                  카테고리 관리
+                </CardTitle>
+                <Dialog
+                  open={categoryDialogOpen}
+                  onOpenChange={setCategoryDialogOpen}
+                >
                   <DialogTrigger asChild>
                     <Button size="sm">
                       <Plus className="h-4 w-4 mr-1" />
                       추가
                     </Button>
                   </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>카테고리 추가</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category-name">카테고리명</Label>
-                  <Input id="category-name" value={categoryName} onChange={(e) => setCategoryName(e.target.value)} placeholder="예: 교육비" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="category-kind">유형</Label>
-                  <Select value={categoryKind} onValueChange={(v) => setCategoryKind(v as CategoryKind)}>
-                    <SelectTrigger id="category-kind">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="INCOME">수입</SelectItem>
-                      <SelectItem value="EXPENSE">지출</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button onClick={handleAddCategory} className="w-full">
-                  저장
-                </Button>
-              </div>
-            </DialogContent>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>카테고리 추가</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="category-name">카테고리명</Label>
+                        <Input
+                          id="category-name"
+                          value={categoryName}
+                          onChange={(e) => setCategoryName(e.target.value)}
+                          placeholder="예: 교육비"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="category-kind">유형</Label>
+                        <Select
+                          value={categoryKind}
+                          onValueChange={(v) =>
+                            setCategoryKind(v as CategoryKind)
+                          }
+                        >
+                          <SelectTrigger id="category-kind">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="INCOME">수입</SelectItem>
+                            <SelectItem value="EXPENSE">지출</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button onClick={handleAddCategory} className="w-full">
+                        저장
+                      </Button>
+                    </div>
+                  </DialogContent>
                 </Dialog>
               </div>
             </CardHeader>
@@ -258,18 +367,25 @@ export default function SettingsPage() {
               <div className="divide-y">
                 {/* Income Categories */}
                 <div className="p-5">
-                  <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">수입</h3>
+                  <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+                    수입
+                  </h3>
                   <div className="grid grid-cols-2 gap-2">
                     {allCategories
-                      .filter((c) => c.kind === 'INCOME')
+                      .filter((c) => c.kind === "INCOME")
                       .map((category) => (
                         <div
                           key={category.id}
                           className="flex items-center justify-between p-2.5 border rounded-lg group hover:bg-muted/30 transition-all"
                         >
                           <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
-                            <span className="text-sm font-medium">{category.name}</span>
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <span className="text-sm font-medium">
+                              {category.name}
+                            </span>
                           </div>
                           <Button
                             variant="ghost"
@@ -286,18 +402,25 @@ export default function SettingsPage() {
 
                 {/* Expense Categories */}
                 <div className="p-5">
-                  <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">지출</h3>
+                  <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+                    지출
+                  </h3>
                   <div className="grid grid-cols-2 gap-2">
                     {allCategories
-                      .filter((c) => c.kind === 'EXPENSE')
+                      .filter((c) => c.kind === "EXPENSE")
                       .map((category) => (
                         <div
                           key={category.id}
                           className="flex items-center justify-between p-2.5 border rounded-lg group hover:bg-muted/30 transition-all"
                         >
                           <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
-                            <span className="text-sm font-medium">{category.name}</span>
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <span className="text-sm font-medium">
+                              {category.name}
+                            </span>
                           </div>
                           <Button
                             variant="ghost"
@@ -322,7 +445,9 @@ export default function SettingsPage() {
           <Card className="border">
             <CardHeader className="pb-3 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">반복 거래</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  반복 거래
+                </CardTitle>
                 <RecurringTransactionForm />
               </div>
             </CardHeader>
@@ -340,23 +465,34 @@ export default function SettingsPage() {
                       className="flex items-center justify-between p-3 border rounded-lg group hover:bg-muted/30 transition-all"
                     >
                       <div className="flex items-center gap-2.5 flex-1">
-                        <div className={cn(
-                          'p-1.5 rounded-lg',
-                          recurring.isActive ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-900/30'
-                        )}>
-                          <Repeat className={cn(
-                            'h-3.5 w-3.5',
-                            recurring.isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'
-                          )} />
+                        <div
+                          className={cn(
+                            "p-1.5 rounded-lg",
+                            recurring.isActive
+                              ? "bg-green-100 dark:bg-green-900/30"
+                              : "bg-gray-100 dark:bg-gray-900/30"
+                          )}
+                        >
+                          <Repeat
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              recurring.isActive
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-gray-600 dark:text-gray-400"
+                            )}
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{recurring.name}</p>
+                          <p className="font-medium text-sm truncate">
+                            {recurring.name}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {formatCurrency(recurring.amount)} ·
-                            {recurring.frequency === 'DAILY' && ' 매일'}
-                            {recurring.frequency === 'WEEKLY' && ' 매주'}
-                            {recurring.frequency === 'MONTHLY' && ` 매월 ${recurring.dayOfMonth}일`}
-                            {recurring.frequency === 'YEARLY' && ' 매년'}
+                            {recurring.frequency === "DAILY" && " 매일"}
+                            {recurring.frequency === "WEEKLY" && " 매주"}
+                            {recurring.frequency === "MONTHLY" &&
+                              ` 매월 ${recurring.dayOfMonth}일`}
+                            {recurring.frequency === "YEARLY" && " 매년"}
                           </p>
                         </div>
                       </div>
@@ -366,7 +502,7 @@ export default function SettingsPage() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => toggleActiveStatus(recurring.id)}
-                          title={recurring.isActive ? '비활성화' : '활성화'}
+                          title={recurring.isActive ? "비활성화" : "활성화"}
                         >
                           {recurring.isActive ? (
                             <Power className="h-3.5 w-3.5 text-green-600" />
@@ -379,7 +515,7 @@ export default function SettingsPage() {
                           size="icon"
                           className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => {
-                            if (confirm('이 반복 거래를 삭제하시겠습니까?')) {
+                            if (confirm("이 반복 거래를 삭제하시겠습니까?")) {
                               deleteRecurringTransaction(recurring.id);
                             }
                           }}
@@ -398,7 +534,9 @@ export default function SettingsPage() {
           <Card className="border">
             <CardHeader className="pb-3 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">연례 이벤트</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  연례 이벤트
+                </CardTitle>
                 <AnnualEventForm />
               </div>
             </CardHeader>
@@ -410,27 +548,29 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {Object.entries(groupEventsByType(annualEvents)).map(([type, events]) => (
-                    <div key={type}>
-                      <h3 className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wider">
-                        {getEventTypeLabel(type as EventType)}
-                      </h3>
-                      <div className="space-y-1.5">
-                        {events.map((event) => (
-                          <EventListItem
-                            key={event.id}
-                            event={event}
-                            onToggle={toggleEventStatus}
-                            onDelete={(id) => {
-                              if (confirm('이 이벤트를 삭제하시겠습니까?')) {
-                                deleteAnnualEvent(id);
-                              }
-                            }}
-                          />
-                        ))}
+                  {Object.entries(groupEventsByType(annualEvents)).map(
+                    ([type, events]) => (
+                      <div key={type}>
+                        <h3 className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wider">
+                          {getEventTypeLabel(type as EventType)}
+                        </h3>
+                        <div className="space-y-1.5">
+                          {events.map((event) => (
+                            <EventListItem
+                              key={event.id}
+                              event={event}
+                              onToggle={toggleEventStatus}
+                              onDelete={(id) => {
+                                if (confirm("이 이벤트를 삭제하시겠습니까?")) {
+                                  deleteAnnualEvent(id);
+                                }
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               )}
             </CardContent>
