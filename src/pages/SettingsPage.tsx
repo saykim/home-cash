@@ -34,10 +34,8 @@ import {
   Power,
   PowerOff,
   Calendar,
-  AlertCircle,
 } from "lucide-react";
 import { cn, formatAmountInput, parseFormattedAmount } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 import type { AssetType, CategoryKind, EventType } from "@/types";
 
 export default function SettingsPage() {
@@ -53,7 +51,6 @@ export default function SettingsPage() {
     deleteAnnualEvent,
     toggleActiveStatus: toggleEventStatus,
   } = useAnnualEvents();
-  const { toast } = useToast();
 
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
