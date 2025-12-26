@@ -1,8 +1,52 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { categories } from "./db-schema.js";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { createDb } from "./_lib/vercelDb.js";
 import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp.js";
+
+const DEFAULT_CATEGORIES: Array<{
+  name: string;
+  kind: "INCOME" | "EXPENSE";
+  color: string;
+}> = [
+  // 지출 기본
+  { name: "식비", kind: "EXPENSE", color: "#ef4444" },
+  { name: "교통비", kind: "EXPENSE", color: "#f97316" },
+  { name: "학원비", kind: "EXPENSE", color: "#8b5cf6" },
+  { name: "생활비", kind: "EXPENSE", color: "#3b82f6" },
+  { name: "관리비", kind: "EXPENSE", color: "#22c55e" },
+  { name: "공과금", kind: "EXPENSE", color: "#eab308" },
+  // 수입 기본
+  { name: "급여", kind: "INCOME", color: "#22c55e" },
+  { name: "소득", kind: "INCOME", color: "#3b82f6" },
+  { name: "기타소득", kind: "INCOME", color: "#8b5cf6" },
+];
+
+async function ensureDefaultCategories(db: any) {
+  const wantedNames = Array.from(new Set(DEFAULT_CATEGORIES.map((c) => c.name)));
+  const existing = await db
+    .select({ name: categories.name, kind: categories.kind })
+    .from(categories)
+    .where(inArray(categories.name, wantedNames));
+
+  const existingKeys = new Set(
+    existing.map((c: any) => `${String(c.kind)}:${String(c.name)}`)
+  );
+
+  const toInsert = DEFAULT_CATEGORIES.filter(
+    (c) => !existingKeys.has(`${c.kind}:${c.name}`)
+  );
+
+  if (toInsert.length === 0) return;
+
+  await db.insert(categories).values(
+    toInsert.map((c) => ({
+      name: c.name,
+      kind: c.kind,
+      color: c.color,
+    }))
+  );
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res);
@@ -17,6 +61,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = createDb();
     // GET: 전체 카테고리 조회
     if (req.method === "GET") {
+      // 기본 카테고리(지출/수입)를 사전 등록 (idempotent)
+      await ensureDefaultCategories(db);
       const result = await db.select().from(categories);
       return res.status(200).json(result);
     }
