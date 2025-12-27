@@ -41,9 +41,10 @@ import type { AssetType, CategoryKind, EventType } from "@/types";
 
 export default function SettingsPage() {
   const { assets, addAsset, deleteAsset } = useAssets();
-  const { allCategories, addCategory, deleteCategory } = useCategories();
+  const { allCategories, incomeCategories, expenseCategories, addCategory, deleteCategory } = useCategories();
   const {
     recurringTransactions,
+    addRecurringTransaction,
     deleteRecurringTransaction,
     toggleActiveStatus,
   } = useRecurringTransactions();
@@ -440,7 +441,12 @@ export default function SettingsPage() {
                 <CardTitle className="text-base font-semibold">
                   반복 거래
                 </CardTitle>
-                <RecurringTransactionForm />
+                <RecurringTransactionForm
+                  addRecurringTransaction={addRecurringTransaction}
+                  assets={assets}
+                  incomeCategories={incomeCategories}
+                  expenseCategories={expenseCategories}
+                />
               </div>
             </CardHeader>
             <CardContent className="p-4">

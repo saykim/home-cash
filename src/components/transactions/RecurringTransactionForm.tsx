@@ -17,17 +17,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
-import { useAssets } from "@/hooks/useAssets";
-import { useCategories } from "@/hooks/useCategories";
 import { formatAmountInput, parseFormattedAmount } from "@/lib/utils";
 import { Plus, Repeat } from "lucide-react";
-import type { TransactionType, RecurringFrequency } from "@/types";
+import type { TransactionType, RecurringFrequency, Asset, Category, RecurringTransaction } from "@/types";
 
-export function RecurringTransactionForm() {
-  const { addRecurringTransaction } = useRecurringTransactions();
-  const { assets } = useAssets();
-  const { incomeCategories, expenseCategories } = useCategories();
+interface RecurringTransactionFormProps {
+  addRecurringTransaction: (data: Omit<RecurringTransaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<any>;
+  assets: Asset[];
+  incomeCategories: Category[];
+  expenseCategories: Category[];
+}
+
+export function RecurringTransactionForm({
+  addRecurringTransaction,
+  assets,
+  incomeCategories,
+  expenseCategories
+}: RecurringTransactionFormProps) {
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
