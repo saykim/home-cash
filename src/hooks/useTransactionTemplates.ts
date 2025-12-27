@@ -34,11 +34,30 @@ export function useTransactionTemplates() {
   const addTemplate = async (
     data: Omit<TransactionTemplate, "id" | "createdAt" | "updatedAt">
   ) => {
+    // Optimistic update: 임시 ID로 즉시 로컬 상태 업데이트
+    const tempId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const optimisticTemplate: TransactionTemplate = {
+      ...data,
+      id: tempId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setTemplates((prev) => [...prev, optimisticTemplate]);
+
     try {
       const result = await transactionTemplatesApi.create(data);
-      await fetchTemplates();
+      // 임시 데이터를 실제 서버 응답으로 교체
+      setTemplates((prev) =>
+        prev.map((t) =>
+          t.id === tempId ? { ...result, amount: Number(result.amount) } : t
+        )
+      );
+      setError(null);
       return result;
     } catch (err) {
+      // 실패 시 optimistic update 롤백
+      setTemplates((prev) => prev.filter((t) => t.id !== tempId));
       setError(err instanceof Error ? err.message : "Failed to add template");
       throw err;
     }
@@ -48,10 +67,26 @@ export function useTransactionTemplates() {
     id: string,
     data: Partial<Omit<TransactionTemplate, "id" | "createdAt" | "updatedAt">>
   ) => {
+    // Optimistic update: 즉시 로컬 상태 업데이트
+    const previousTemplates = templates;
+    setTemplates((prev) =>
+      prev.map((t) =>
+        t.id === id ? { ...t, ...data, updatedAt: new Date().toISOString() } : t
+      )
+    );
+
     try {
-      await transactionTemplatesApi.update(id, data);
-      await fetchTemplates();
+      const updated = await transactionTemplatesApi.update(id, data);
+      // 실제 서버 응답으로 교체
+      setTemplates((prev) =>
+        prev.map((t) =>
+          t.id === id ? { ...updated, amount: Number(updated.amount) } : t
+        )
+      );
+      setError(null);
     } catch (err) {
+      // 실패 시 롤백
+      setTemplates(previousTemplates);
       setError(
         err instanceof Error ? err.message : "Failed to update template"
       );
@@ -60,10 +95,16 @@ export function useTransactionTemplates() {
   };
 
   const deleteTemplate = async (id: string) => {
+    // Optimistic update: 즉시 로컬에서 제거
+    const previousTemplates = templates;
+    setTemplates((prev) => prev.filter((t) => t.id !== id));
+
     try {
       await transactionTemplatesApi.delete(id);
-      await fetchTemplates();
+      setError(null);
     } catch (err) {
+      // 실패 시 롤백
+      setTemplates(previousTemplates);
       setError(
         err instanceof Error ? err.message : "Failed to delete template"
       );

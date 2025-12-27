@@ -29,10 +29,27 @@ export function useCreditCards() {
   const addCreditCard = async (
     data: Omit<CreditCard, "id" | "createdAt" | "updatedAt">
   ) => {
+    // Optimistic update: 임시 ID로 즉시 로컬 상태 업데이트
+    const tempId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const optimisticCard: CreditCard = {
+      ...data,
+      id: tempId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setCreditCards((prev) => [...prev, optimisticCard]);
+
     try {
-      await creditCardsApi.create(data);
-      await fetchCreditCards();
+      const created = await creditCardsApi.create(data);
+      // 임시 데이터를 실제 서버 응답으로 교체
+      setCreditCards((prev) =>
+        prev.map((c) => (c.id === tempId ? created : c))
+      );
+      setError(null);
     } catch (err) {
+      // 실패 시 optimistic update 롤백
+      setCreditCards((prev) => prev.filter((c) => c.id !== tempId));
       setError(
         err instanceof Error ? err.message : "Failed to add credit card"
       );
@@ -41,10 +58,24 @@ export function useCreditCards() {
   };
 
   const updateCreditCard = async (id: string, data: Partial<CreditCard>) => {
+    // Optimistic update: 즉시 로컬 상태 업데이트
+    const previousCards = creditCards;
+    setCreditCards((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, ...data, updatedAt: new Date().toISOString() } : c
+      )
+    );
+
     try {
-      await creditCardsApi.update(id, data);
-      await fetchCreditCards();
+      const updated = await creditCardsApi.update(id, data);
+      // 실제 서버 응답으로 교체
+      setCreditCards((prev) =>
+        prev.map((c) => (c.id === id ? updated : c))
+      );
+      setError(null);
     } catch (err) {
+      // 실패 시 롤백
+      setCreditCards(previousCards);
       setError(
         err instanceof Error ? err.message : "Failed to update credit card"
       );
@@ -53,10 +84,16 @@ export function useCreditCards() {
   };
 
   const deleteCreditCard = async (id: string) => {
+    // Optimistic update: 즉시 로컬에서 제거
+    const previousCards = creditCards;
+    setCreditCards((prev) => prev.filter((c) => c.id !== id));
+
     try {
       await creditCardsApi.delete(id);
-      await fetchCreditCards();
+      setError(null);
     } catch (err) {
+      // 실패 시 롤백
+      setCreditCards(previousCards);
       setError(
         err instanceof Error ? err.message : "Failed to delete credit card"
       );

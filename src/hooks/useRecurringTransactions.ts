@@ -38,11 +38,32 @@ export function useRecurringTransactions() {
   const addRecurringTransaction = async (
     data: Omit<RecurringTransaction, "id" | "createdAt" | "updatedAt">
   ) => {
+    // Optimistic update: 임시 ID로 즉시 로컬 상태 업데이트
+    const tempId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const optimisticTransaction: RecurringTransaction = {
+      ...data,
+      id: tempId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setRecurringTransactions((prev) => [...prev, optimisticTransaction]);
+
     try {
       const result = await recurringTransactionsApi.create(data);
-      await fetchRecurringTransactions();
+      // 임시 데이터를 실제 서버 응답으로 교체
+      setRecurringTransactions((prev) =>
+        prev.map((r) =>
+          r.id === tempId
+            ? { ...result, amount: Number(result.amount) }
+            : r
+        )
+      );
+      setError(null);
       return result;
     } catch (err) {
+      // 실패 시 optimistic update 롤백
+      setRecurringTransactions((prev) => prev.filter((r) => r.id !== tempId));
       setError(
         err instanceof Error
           ? err.message
@@ -56,10 +77,26 @@ export function useRecurringTransactions() {
     id: string,
     data: Partial<RecurringTransaction>
   ) => {
+    // Optimistic update: 즉시 로컬 상태 업데이트
+    const previousTransactions = recurringTransactions;
+    setRecurringTransactions((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, ...data, updatedAt: new Date().toISOString() } : r
+      )
+    );
+
     try {
-      await recurringTransactionsApi.update(id, data);
-      await fetchRecurringTransactions();
+      const updated = await recurringTransactionsApi.update(id, data);
+      // 실제 서버 응답으로 교체
+      setRecurringTransactions((prev) =>
+        prev.map((r) =>
+          r.id === id ? { ...updated, amount: Number(updated.amount) } : r
+        )
+      );
+      setError(null);
     } catch (err) {
+      // 실패 시 롤백
+      setRecurringTransactions(previousTransactions);
       setError(
         err instanceof Error
           ? err.message
@@ -70,10 +107,16 @@ export function useRecurringTransactions() {
   };
 
   const deleteRecurringTransaction = async (id: string) => {
+    // Optimistic update: 즉시 로컬에서 제거
+    const previousTransactions = recurringTransactions;
+    setRecurringTransactions((prev) => prev.filter((r) => r.id !== id));
+
     try {
       await recurringTransactionsApi.delete(id);
-      await fetchRecurringTransactions();
+      setError(null);
     } catch (err) {
+      // 실패 시 롤백
+      setRecurringTransactions(previousTransactions);
       setError(
         err instanceof Error
           ? err.message

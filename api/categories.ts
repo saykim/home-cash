@@ -22,7 +22,13 @@ const DEFAULT_CATEGORIES: Array<{
   { name: "기타소득", kind: "INCOME", color: "#8b5cf6" },
 ];
 
+// 함수 인스턴스당 한 번만 seeding 실행 (warm instance에서 재실행 방지)
+let seedingCompleted = false;
+
 async function ensureDefaultCategories(db: any) {
+  // 이미 완료된 경우 스킵 (warm instance 최적화)
+  if (seedingCompleted) return;
+
   const wantedNames = Array.from(new Set(DEFAULT_CATEGORIES.map((c) => c.name)));
   const existing = await db
     .select({ name: categories.name, kind: categories.kind })
@@ -37,15 +43,18 @@ async function ensureDefaultCategories(db: any) {
     (c) => !existingKeys.has(`${c.kind}:${c.name}`)
   );
 
-  if (toInsert.length === 0) return;
+  if (toInsert.length > 0) {
+    await db.insert(categories).values(
+      toInsert.map((c) => ({
+        name: c.name,
+        kind: c.kind,
+        color: c.color,
+      }))
+    );
+  }
 
-  await db.insert(categories).values(
-    toInsert.map((c) => ({
-      name: c.name,
-      kind: c.kind,
-      color: c.color,
-    }))
-  );
+  // Seeding 완료 플래그 설정
+  seedingCompleted = true;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

@@ -37,11 +37,35 @@ export function useAnnualEvents() {
   const addAnnualEvent = async (
     data: Omit<AnnualEvent, "id" | "createdAt" | "updatedAt">
   ) => {
+    // Optimistic update: 임시 ID로 즉시 로컬 상태 업데이트
+    const tempId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const optimisticEvent: AnnualEvent = {
+      ...data,
+      id: tempId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setAllAnnualEvents((prev) => [...prev, optimisticEvent]);
+
     try {
       const result = await annualEventsApi.create(data);
-      await fetchAnnualEvents();
+      // 임시 데이터를 실제 서버 응답으로 교체
+      setAllAnnualEvents((prev) =>
+        prev.map((e) =>
+          e.id === tempId
+            ? {
+                ...result,
+                amount: result.amount ? Number(result.amount) : undefined,
+              }
+            : e
+        )
+      );
+      setError(null);
       return result;
     } catch (err) {
+      // 실패 시 optimistic update 롤백
+      setAllAnnualEvents((prev) => prev.filter((e) => e.id !== tempId));
       setError(
         err instanceof Error ? err.message : "Failed to add annual event"
       );
@@ -50,10 +74,31 @@ export function useAnnualEvents() {
   };
 
   const updateAnnualEvent = async (id: string, data: Partial<AnnualEvent>) => {
+    // Optimistic update: 즉시 로컬 상태 업데이트
+    const previousEvents = allAnnualEvents;
+    setAllAnnualEvents((prev) =>
+      prev.map((e) =>
+        e.id === id ? { ...e, ...data, updatedAt: new Date().toISOString() } : e
+      )
+    );
+
     try {
-      await annualEventsApi.update(id, data);
-      await fetchAnnualEvents();
+      const updated = await annualEventsApi.update(id, data);
+      // 실제 서버 응답으로 교체
+      setAllAnnualEvents((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? {
+                ...updated,
+                amount: updated.amount ? Number(updated.amount) : undefined,
+              }
+            : e
+        )
+      );
+      setError(null);
     } catch (err) {
+      // 실패 시 롤백
+      setAllAnnualEvents(previousEvents);
       setError(
         err instanceof Error ? err.message : "Failed to update annual event"
       );
@@ -62,10 +107,16 @@ export function useAnnualEvents() {
   };
 
   const deleteAnnualEvent = async (id: string) => {
+    // Optimistic update: 즉시 로컬에서 제거
+    const previousEvents = allAnnualEvents;
+    setAllAnnualEvents((prev) => prev.filter((e) => e.id !== id));
+
     try {
       await annualEventsApi.delete(id);
-      await fetchAnnualEvents();
+      setError(null);
     } catch (err) {
+      // 실패 시 롤백
+      setAllAnnualEvents(previousEvents);
       setError(
         err instanceof Error ? err.message : "Failed to delete annual event"
       );
