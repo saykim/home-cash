@@ -18,10 +18,14 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { useCreditCards } from '@/hooks/useCreditCards';
 import { useAssets } from '@/hooks/useAssets';
+import type { CreditCard } from '@/types';
 
-export function CreditCardForm() {
+interface CreditCardFormProps {
+  addCreditCard: (data: Omit<CreditCard, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+}
+
+export function CreditCardForm({ addCreditCard }: CreditCardFormProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [billingDay, setBillingDay] = useState('25');
@@ -31,7 +35,6 @@ export function CreditCardForm() {
   const [endDay, setEndDay] = useState('31');
   const [linkedAssetId, setLinkedAssetId] = useState('');
 
-  const { addCreditCard } = useCreditCards();
   const { assets } = useAssets();
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -8,7 +8,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { CreditCard, Trash2, Award } from 'lucide-react';
 
 export default function CardsPage() {
-  const { creditCards, deleteCreditCard } = useCreditCards();
+  const { creditCards, addCreditCard, deleteCreditCard } = useCreditCards();
   const { allTiers, deleteBenefitTier } = useBenefitTiers();
   const { assets } = useAssets();
 
@@ -32,7 +32,7 @@ export default function CardsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">신용카드 관리</h1>
-        <CreditCardForm />
+        <CreditCardForm addCreditCard={addCreditCard} />
       </div>
 
       {creditCards.length === 0 ? (
