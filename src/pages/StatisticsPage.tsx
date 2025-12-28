@@ -1,18 +1,32 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { PeriodSelector } from '@/components/common/PeriodSelector';
+import { PeriodNavigator } from '@/components/common/PeriodNavigator';
 import { CategoryPieChart } from '@/components/statistics/CategoryPieChart';
 import { TrendChart } from '@/components/statistics/TrendChart';
 import { InsightCard } from '@/components/statistics/InsightCard';
 import { CategoryDetailList } from '@/components/statistics/CategoryDetailList';
 import { usePeriodStats } from '@/hooks/usePeriodStats';
-import { useLast6MonthsTrend } from '@/hooks/useLast6MonthsTrend';
+import { useTrendData } from '@/hooks/useTrendData';
+import { getPeriodRange, getPreviousPeriod, getNextPeriod } from '@/lib/periodUtils';
 import { formatCurrency } from '@/lib/formatters';
+import type { PeriodMode } from '@/types';
 
 export default function StatisticsPage() {
-  // Fixed to current month for statistics calculation
-  const currentDate = new Date();
-  const stats = usePeriodStats('month', currentDate);
-  const trendData = useLast6MonthsTrend();
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('month');
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const periodRange = useMemo(() => getPeriodRange(periodMode, currentDate), [periodMode, currentDate]);
+  const stats = usePeriodStats(periodMode, currentDate);
+  const trendData = useTrendData(periodMode, currentDate);
+
+  const handlePrevious = () => {
+    setCurrentDate(getPreviousPeriod(periodMode, currentDate));
+  };
+
+  const handleNext = () => {
+    setCurrentDate(getNextPeriod(periodMode, currentDate));
+  };
 
   const chartData = stats.byCategory.map((c) => ({
     name: c.categoryName,
@@ -24,6 +38,10 @@ export default function StatisticsPage() {
   const topCategory = stats.byCategory.length > 0
     ? stats.byCategory.reduce((max, cat) => cat.amount > max.amount ? cat : max, stats.byCategory[0])
     : null;
+
+  // Get period text for insights
+  const periodText = periodMode === 'day' ? '어제' : periodMode === 'week' ? '지난주' : '지난달';
+  const currentPeriodText = periodMode === 'day' ? '오늘' : periodMode === 'week' ? '이번 주' : '이번 달';
 
   // Period insights
   const insights = useMemo(() => {
@@ -39,7 +57,7 @@ export default function StatisticsPage() {
     if (stats.totalExpense > stats.totalIncome) {
       result.push({
         type: 'warning',
-        title: '이번 달 지출이 수입보다 많습니다',
+        title: `${currentPeriodText} 지출이 수입보다 많습니다`,
         description: `${formatCurrency(stats.totalExpense - stats.totalIncome)} 적자`,
         amount: stats.totalExpense - stats.totalIncome
       });
@@ -49,8 +67,8 @@ export default function StatisticsPage() {
     if (stats.change.expenseChange > 20) {
       result.push({
         type: 'alert',
-        title: '지난달 대비 지출이 크게 증가했습니다',
-        description: '지난 달에 크게 증가',
+        title: `${periodText} 대비 지출이 크게 증가했습니다`,
+        description: `${periodText} 대비 크게 증가`,
         percentage: stats.change.expenseChange
       });
     }
@@ -66,14 +84,29 @@ export default function StatisticsPage() {
     }
 
     return result;
-  }, [stats, topCategory]);
+  }, [stats, topCategory, periodText, currentPeriodText]);
+
+  // Dynamic trend chart title
+  const trendChartTitle = periodMode === 'day'
+    ? '최근 30일 수입/지출 추이'
+    : periodMode === 'week'
+    ? '최근 12주 수입/지출 추이'
+    : '최근 6개월 수입/지출 추이';
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">인사이트</h1>
+        <h1 className="text-2xl font-bold">통계</h1>
+        <PeriodNavigator
+          label={periodRange.label}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
+        />
       </div>
+
+      {/* Period Selector */}
+      <PeriodSelector value={periodMode} onChange={setPeriodMode} />
 
       {/* Insights Section - 3 cards in a row */}
       {insights.length > 0 && (
@@ -86,10 +119,10 @@ export default function StatisticsPage() {
 
       {/* Main Statistics Section - 3 columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 6-Month Trend Chart */}
+        {/* Trend Chart */}
         <Card className="h-full">
           <CardHeader>
-            <CardTitle className="text-lg">최근 6개월 수입/지출 추이</CardTitle>
+            <CardTitle className="text-lg">{trendChartTitle}</CardTitle>
           </CardHeader>
           <CardContent>
             <TrendChart data={trendData} title="" />
