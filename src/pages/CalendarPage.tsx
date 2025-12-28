@@ -17,6 +17,7 @@ import { CategoryFilter } from "@/components/calendar/CategoryFilter";
 import { CalendarBadge, getCardColor } from "@/components/calendar/CalendarBadge";
 import { TodaySchedule } from "@/components/calendar/TodaySchedule";
 import { WeeklySummary } from "@/components/calendar/WeeklySummary";
+import { BudgetStatus } from "@/components/calendar/BudgetStatus";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useAssets } from "@/hooks/useAssets";
@@ -399,6 +400,12 @@ export default function CalendarPage() {
           <WeeklySummary
             transactions={transactions}
             categories={allCategories}
+          />
+          <BudgetStatus
+            budgets={budgets}
+            transactions={transactions}
+            categories={allCategories}
+            currentMonth={currentMonth}
           />
         </div>
 
