@@ -11,7 +11,6 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { AnnualEventForm } from "@/components/calendar/AnnualEventForm";
-import { CumulativeChart } from "@/components/calendar/CumulativeChart";
 import { BudgetProgress } from "@/components/calendar/BudgetProgress";
 import { RangeStats } from "@/components/calendar/RangeStats";
 import { CategoryFilter } from "@/components/calendar/CategoryFilter";
@@ -408,14 +407,6 @@ export default function CalendarPage() {
 
         {/* Right Main Content - Calendar and Charts */}
         <div className="space-y-4 order-1 lg:order-2">
-      {/* Monthly Cumulative Chart */}
-      <Card className="p-4">
-        <CumulativeChart
-          transactions={transactions}
-          currentMonth={currentMonth}
-        />
-      </Card>
-
       {/* Budget Progress */}
       {budgets.length > 0 && (
         <Card className="p-4">
@@ -653,50 +644,43 @@ export default function CalendarPage() {
                   </div>
                 </div>
 
-                {/* 하단: 거래 내역 */}
-                {hasData && (
-                  <div className="mt-auto flex flex-col gap-0.5 text-xs items-center">
-                    {/* Category Icon */}
-                    {CategoryIcon && (
-                      <CategoryIcon
-                        className={cn(
-                          "h-3 w-3 opacity-60",
-                          isSelected && "opacity-100"
-                        )}
-                      />
-                    )}
-                    {income > 0 && (
-                      <div
-                        className={cn(
-                          "text-center leading-tight",
-                          isSelected
-                            ? "text-primary-foreground"
-                            : "text-green-600"
-                        )}
-                      >
-                        +{(income / 10000).toFixed(0)}만
-                      </div>
-                    )}
-                    {expense > 0 && (
-                      <div
-                        className={cn(
-                          "text-center leading-tight flex items-center gap-0.5",
-                          isSelected
-                            ? "text-primary-foreground"
-                            : "text-red-600"
-                        )}
-                      >
-                        <span>-{(expense / 10000).toFixed(0)}만</span>
-                        {comparison.expenseChange > 10000 && (
-                          <TrendingUp className="h-2.5 w-2.5 text-red-500" />
-                        )}
-                        {comparison.expenseChange < -10000 && (
-                          <TrendingDown className="h-2.5 w-2.5 text-green-500" />
-                        )}
-                      </div>
-                    )}
+                {/* 하단: 금액 및 거래 내역 */}
+                <div className="mt-auto flex flex-col gap-1 w-full px-0.5">
+                  {/* Total Amount */}
+                  <div className={cn(
+                    "text-center font-bold text-xs",
+                    expense > 0 && !isSelected && "text-foreground",
+                    isSelected && "text-primary-foreground"
+                  )}>
+                    {expense > 0 ? `W${expense.toLocaleString()}` : 'W0'}
                   </div>
-                )}
+
+                  {/* Category Transactions (max 2) */}
+                  {dayTxs.slice(0, 2).map((tx) => {
+                    const category = allCategories.find(c => c.id === tx.categoryId);
+                    if (!category) return null;
+
+                    return (
+                      <div
+                        key={tx.id}
+                        className={cn(
+                          "text-[9px] leading-tight flex items-center gap-0.5",
+                          tx.type === "INCOME" ? "text-green-600" : "text-red-600",
+                          isSelected && "text-primary-foreground opacity-90"
+                        )}
+                      >
+                        <span>{category.icon}</span>
+                        <span className="truncate">{category.name}</span>
+                        <span className="ml-auto">W{(tx.amount / 10000).toFixed(0)}만</span>
+                      </div>
+                    );
+                  })}
+                  {dayTxs.length > 2 && (
+                    <div className="text-[9px] text-muted-foreground text-center">
+                      +{dayTxs.length - 2}건
+                    </div>
+                  )}
+                </div>
               </button>
             );
           })}
