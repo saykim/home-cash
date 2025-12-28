@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import { getAuth } from "./firebaseAdmin";
-import { HttpError } from "./vercelHttp";
-import { users } from "../db-schema";
+import { getAuth } from "./firebaseAdmin.js";
+import { HttpError } from "./vercelHttp.js";
+import { users } from "../db-schema.js";
 
 function parseAllowList(value) {
   if (!value || typeof value !== "string") return [];
