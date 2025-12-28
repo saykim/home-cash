@@ -11,7 +11,6 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { AnnualEventForm } from "@/components/calendar/AnnualEventForm";
-import { BudgetProgress } from "@/components/calendar/BudgetProgress";
 import { RangeStats } from "@/components/calendar/RangeStats";
 import { CategoryFilter } from "@/components/calendar/CategoryFilter";
 import { CalendarBadge, getCardColor } from "@/components/calendar/CalendarBadge";
@@ -411,17 +410,6 @@ export default function CalendarPage() {
 
         {/* Right Main Content - Calendar and Charts */}
         <div className="space-y-4 order-1 lg:order-2">
-      {/* Budget Progress */}
-      {budgets.length > 0 && (
-        <Card className="p-4">
-          <BudgetProgress
-            transactions={transactions}
-            budgets={budgets}
-            allCategories={allCategories}
-          />
-        </Card>
-      )}
-
       <CategoryFilter
         categories={allCategories}
         selectedCategoryIds={selectedCategories}
