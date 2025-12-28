@@ -20,12 +20,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Verify authentication and get user ID
     const userId = await verifyAuth(req, db);
 
-    // GET: 전체 정기 거래 조회
+    // GET: 전체 정기 거래 조회 (공유 데이터셋 - userId 필터링 없음)
     if (req.method === "GET") {
-      const result = await db
-        .select()
-        .from(recurringTransactions)
-        .where(eq(recurringTransactions.userId, userId));
+      const result = await db.select().from(recurringTransactions);
       return res.status(200).json(result);
     }
 
@@ -54,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(201).json(result[0]);
     }
 
-    // PUT: 정기 거래 수정
+    // PUT: 정기 거래 수정 (공유 데이터셋 - 소유권 체크 없음)
     if (req.method === "PUT") {
       const { id } = req.query;
       const data = req.body;
@@ -68,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           amount: data.amount !== undefined ? String(data.amount) : undefined,
           updatedAt: new Date(),
         })
-        .where(and(eq(recurringTransactions.id, id), eq(recurringTransactions.userId, userId)))
+        .where(eq(recurringTransactions.id, id))
         .returning();
 
       if (!result || result.length === 0) {
@@ -78,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(result[0]);
     }
 
-    // DELETE: 정기 거래 삭제
+    // DELETE: 정기 거래 삭제 (공유 데이터셋 - 소유권 체크 없음)
     if (req.method === "DELETE") {
       const { id } = req.query;
       if (!id || typeof id !== "string") {
@@ -86,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       const result = await db
         .delete(recurringTransactions)
-        .where(and(eq(recurringTransactions.id, id), eq(recurringTransactions.userId, userId)))
+        .where(eq(recurringTransactions.id, id))
         .returning();
 
       if (!result || result.length === 0) {

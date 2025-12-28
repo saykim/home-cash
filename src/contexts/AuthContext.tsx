@@ -26,29 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign in with Google
   const signInWithGoogle = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const idToken = await result.user.getIdToken();
-
-      // Check if user exists, if not create user
-      try {
-        const response = await fetch("/api/users/me", {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        });
-
-        if (response.status === 401 && response.statusText === "USER_NOT_FOUND") {
-          // User doesn't exist, create new user
-          await fetch("/api/users", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-          });
-        }
-      } catch (error) {
-        console.error("Error checking/creating user:", error);
-      }
+      await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Error signing in with Google:", error);
       throw error;
@@ -78,34 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const idToken = await firebaseUser.getIdToken();
         setToken(idToken);
         setAuthToken(idToken); // Set token for API calls
-
-        // Check if user exists in database, if not create user
-        try {
-          const response = await fetch("/api/users/me", {
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-          });
-
-          // If user doesn't exist (401), create new user
-          if (!response.ok && response.status === 401) {
-            console.log("User not found in database, creating...");
-            const createResponse = await fetch("/api/users", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${idToken}`,
-              },
-            });
-
-            if (!createResponse.ok) {
-              console.error("Failed to create user:", await createResponse.text());
-            } else {
-              console.log("User created successfully");
-            }
-          }
-        } catch (error) {
-          console.error("Error checking/creating user:", error);
-        }
       } else {
         setToken(null);
         setAuthToken(null); // Clear API token

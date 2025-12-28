@@ -3,7 +3,6 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { eq } from "drizzle-orm";
 import { setCorsHeaders, sendError, getRequestId, HttpError } from "./_lib/vercelHttp.js";
-import { getAuth } from "./_lib/firebaseAdmin.js";
 import { verifyAuth } from "./_lib/vercelAuth.js";
 import { users, categories, assets } from "./db-schema.js";
 
@@ -29,54 +28,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const db = createDb();
 
   try {
-    // POST /api/users - Sign up
+    // POST /api/users - Sign up (공유 모드에서는 내부 공유 사용자 1개만 생성/반환)
     if (req.method === "POST") {
-      // Extract token from Authorization header
-      const authHeader = req.headers?.authorization;
+      // verifyAuth는 "Authorization 헤더 존재"를 요구하며,
+      // DB 작업을 위한 공유 userId를 생성/선택해 반환합니다.
+      const sharedUserId = await verifyAuth(req, db);
 
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        throw new HttpError(
-          401,
-          "MISSING_TOKEN",
-          "Authorization header with Bearer token is required"
-        );
-      }
-
-      const token = authHeader.substring(7);
-
-      // Verify Firebase token
-      const auth = getAuth();
-      let decodedToken;
-
-      try {
-        decodedToken = await auth.verifyIdToken(token);
-      } catch (error) {
-        console.error("[POST /api/users] Token verification failed:", error);
-        throw new HttpError(401, "INVALID_TOKEN", "Invalid token");
-      }
-
-      const { uid, email, name, picture } = decodedToken;
-
-      // Check if user already exists
       const existingUser = await db
         .select()
         .from(users)
-        .where(eq(users.firebaseUid, uid))
+        .where(eq(users.id, sharedUserId))
         .limit(1);
 
       if (existingUser.length > 0) {
-        // User already exists, return existing user
         return res.status(200).json(existingUser[0]);
       }
 
-      // Create new user
+      // (이 케이스는 보통 발생하지 않지만) 공유 사용자 생성
       const [newUser] = await db
         .insert(users)
         .values({
-          firebaseUid: uid,
-          email: email || "",
-          displayName: name || null,
-          photoURL: picture || null,
+          id: sharedUserId,
+          firebaseUid: "shared",
+          email: "shared@local",
+          displayName: "Shared User",
+          photoURL: null,
         })
         .returning();
 

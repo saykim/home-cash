@@ -20,20 +20,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Verify authentication and get user ID
     const userId = await verifyAuth(req, db);
 
-    // GET: 예산 조회 (월별 필터 지원)
+    // GET: 예산 조회 (공유 데이터셋 - userId 필터링 없음, 월별 필터 지원)
     if (req.method === "GET") {
       const { month } = req.query;
       if (month && typeof month === "string") {
         const result = await db
           .select()
           .from(budgets)
-          .where(and(eq(budgets.userId, userId), eq(budgets.month, month)));
+          .where(eq(budgets.month, month));
         return res.status(200).json(result);
       }
-      const result = await db
-        .select()
-        .from(budgets)
-        .where(eq(budgets.userId, userId));
+      const result = await db.select().from(budgets);
       return res.status(200).json(result);
     }
 
@@ -41,13 +38,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "POST") {
       const data = req.body;
 
-      // 같은 카테고리+월의 기존 예산 확인
+      // 같은 카테고리+월의 기존 예산 확인 (공유 데이터셋 - userId 필터링 없음)
       const existing = await db
         .select()
         .from(budgets)
         .where(
           and(
-            eq(budgets.userId, userId),
             eq(budgets.categoryId, data.categoryId),
             eq(budgets.month, data.month)
           )
@@ -76,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(201).json(result[0]);
     }
 
-    // PUT: 예산 수정
+    // PUT: 예산 수정 (공유 데이터셋 - 소유권 체크 없음)
     if (req.method === "PUT") {
       const { id } = req.query;
       const data = req.body;
@@ -90,7 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           amount: data.amount !== undefined ? String(data.amount) : undefined,
           updatedAt: new Date(),
         })
-        .where(and(eq(budgets.id, id), eq(budgets.userId, userId)))
+        .where(eq(budgets.id, id))
         .returning();
 
       if (!result || result.length === 0) {
@@ -100,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(result[0]);
     }
 
-    // DELETE: 예산 삭제
+    // DELETE: 예산 삭제 (공유 데이터셋 - 소유권 체크 없음)
     if (req.method === "DELETE") {
       const { id } = req.query;
       if (!id || typeof id !== "string") {
@@ -108,7 +104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       const result = await db
         .delete(budgets)
-        .where(and(eq(budgets.id, id), eq(budgets.userId, userId)))
+        .where(eq(budgets.id, id))
         .returning();
 
       if (!result || result.length === 0) {

@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Verify authentication and get user ID
     const userId = await verifyAuth(req, db);
 
-    // GET: 사용자별 거래내역 조회 (월별 필터 지원)
+    // GET: 거래내역 조회 (공유 데이터셋 - userId 필터링 없음, 월별/기간 필터 지원)
     if (req.method === "GET") {
       const { month, startDate, endDate } = req.query;
 
@@ -33,7 +33,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .from(transactions)
           .where(
             and(
-              eq(transactions.userId, userId),
               gte(transactions.date, start),
               lte(transactions.date, end)
             )
@@ -50,7 +49,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .from(transactions)
           .where(
             and(
-              eq(transactions.userId, userId),
               gte(transactions.date, startDate),
               lte(transactions.date, endDate)
             )
@@ -60,7 +58,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         result = await db
           .select()
           .from(transactions)
-          .where(eq(transactions.userId, userId))
           .orderBy(desc(transactions.date));
       }
       return res.status(200).json(result);
@@ -86,11 +83,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         })
         .returning();
 
-      // 자산 잔액 업데이트 (본인 자산만)
+      // 자산 잔액 업데이트 (공유 데이터셋 - userId 필터링 없음)
       const [asset] = await db
         .select()
         .from(assets)
-        .where(and(eq(assets.id, data.assetId), eq(assets.userId, userId)));
+        .where(eq(assets.id, data.assetId));
       if (asset) {
         let newBalance = Number(asset.balance);
         if (data.type === "INCOME") {
@@ -103,20 +100,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await db
           .update(assets)
           .set({ balance: String(newBalance), updatedAt: new Date() })
-          .where(and(eq(assets.id, data.assetId), eq(assets.userId, userId)));
+          .where(eq(assets.id, data.assetId));
 
-        // 이체일 경우 대상 자산도 업데이트 (본인 자산만)
+        // 이체일 경우 대상 자산도 업데이트 (공유 데이터셋 - userId 필터링 없음)
         if (data.type === "TRANSFER" && data.toAssetId) {
           const [toAsset] = await db
             .select()
             .from(assets)
-            .where(and(eq(assets.id, data.toAssetId), eq(assets.userId, userId)));
+            .where(eq(assets.id, data.toAssetId));
           if (toAsset) {
             const toNewBalance = Number(toAsset.balance) + Number(data.amount);
             await db
               .update(assets)
               .set({ balance: String(toNewBalance), updatedAt: new Date() })
-              .where(and(eq(assets.id, data.toAssetId), eq(assets.userId, userId)));
+              .where(eq(assets.id, data.toAssetId));
           }
         }
       }
@@ -124,7 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(201).json(newTx);
     }
 
-    // PUT: 거래내역 수정 (본인 데이터만)
+    // PUT: 거래내역 수정 (공유 데이터셋 - 소유권 체크 없음)
     if (req.method === "PUT") {
       const { id } = req.query;
       const data = req.body;
@@ -138,7 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           amount: data.amount !== undefined ? String(data.amount) : undefined,
           updatedAt: new Date(),
         })
-        .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
+        .where(eq(transactions.id, id))
         .returning();
 
       if (!result || result.length === 0) {
@@ -148,28 +145,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(result[0]);
     }
 
-    // DELETE: 거래내역 삭제 + 자산 잔액 복구 (본인 데이터만)
+    // DELETE: 거래내역 삭제 + 자산 잔액 복구 (공유 데이터셋 - 소유권 체크 없음)
     if (req.method === "DELETE") {
       const { id } = req.query;
       if (!id || typeof id !== "string") {
         return res.status(400).json({ error: "Missing id" });
       }
 
-      // 삭제 전 거래 정보 조회 (본인 데이터만)
+      // 삭제 전 거래 정보 조회
       const [tx] = await db
         .select()
         .from(transactions)
-        .where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
+        .where(eq(transactions.id, id));
 
       if (!tx) {
         return res.status(404).json({ error: "Transaction not found" });
       }
 
-      // 자산 잔액 복구 (본인 자산만)
+      // 자산 잔액 복구
       const [asset] = await db
         .select()
         .from(assets)
-        .where(and(eq(assets.id, tx.assetId), eq(assets.userId, userId)));
+        .where(eq(assets.id, tx.assetId));
       if (asset) {
         let newBalance = Number(asset.balance);
         if (tx.type === "INCOME") {
@@ -182,27 +179,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await db
           .update(assets)
           .set({ balance: String(newBalance), updatedAt: new Date() })
-          .where(and(eq(assets.id, tx.assetId), eq(assets.userId, userId)));
+          .where(eq(assets.id, tx.assetId));
 
-        // 이체였을 경우 대상 자산도 복구 (본인 자산만)
+        // 이체였을 경우 대상 자산도 복구
         if (tx.type === "TRANSFER" && tx.toAssetId) {
           const [toAsset] = await db
             .select()
             .from(assets)
-            .where(and(eq(assets.id, tx.toAssetId), eq(assets.userId, userId)));
+            .where(eq(assets.id, tx.toAssetId));
           if (toAsset) {
             const toNewBalance = Number(toAsset.balance) - Number(tx.amount);
             await db
               .update(assets)
               .set({ balance: String(toNewBalance), updatedAt: new Date() })
-              .where(and(eq(assets.id, tx.toAssetId), eq(assets.userId, userId)));
+              .where(eq(assets.id, tx.toAssetId));
           }
         }
       }
 
       await db
         .delete(transactions)
-        .where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
+        .where(eq(transactions.id, id));
       return res.status(200).json({ success: true });
     }
 

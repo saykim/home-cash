@@ -1,59 +1,41 @@
 import { eq } from "drizzle-orm";
-import { getAuth } from "./firebaseAdmin.js";
 import { HttpError } from "./vercelHttp.js";
 import { users } from "../db-schema.js";
 
-function parseAllowList(value) {
-  if (!value || typeof value !== "string") return [];
-  return value
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter((item) => item.length > 0);
-}
-
-const sharedAuthConfig = (() => {
-  const userId =
+/**
+ * Shared mode (단일 데이터셋 공유)
+ * - 서버는 Firebase Admin 검증을 하지 않습니다. (환경변수/키 설정 부담 제거)
+ * - 프런트에서 로그인 후 Authorization 헤더(Bearer)를 붙이는 것만 요구합니다.
+ * - DB 작업을 위한 userId는 아래 우선순위로 결정합니다:
+ *   1) env `SHARED_USER_ID` (있으면 그대로 사용)
+ *   2) users 테이블의 첫 번째 사용자 id
+ *   3) users 테이블이 비어있으면 "shared" 사용자 1개를 생성
+ */
+async function resolveSharedUserId(db) {
+  const envUserId =
     typeof process.env.SHARED_USER_ID === "string"
       ? process.env.SHARED_USER_ID.trim()
       : "";
-  const allowedEmails = parseAllowList(process.env.SHARED_ALLOWED_EMAILS);
+  if (envUserId) return envUserId;
 
-  return {
-    enabled: userId.length > 0 && allowedEmails.length > 0,
-    userId: userId.length > 0 ? userId : null,
-    allowedEmails,
-  };
-})();
+  const existing = await db.select().from(users).limit(1);
+  if (existing && existing.length > 0) return existing[0].id;
 
-async function tryResolveSharedUserId(decodedToken, db) {
-  if (!sharedAuthConfig.enabled) {
-    return null;
+  const created = await db
+    .insert(users)
+    .values({
+      firebaseUid: "shared",
+      email: "shared@local",
+      displayName: "Shared User",
+      photoURL: null,
+    })
+    .returning();
+
+  if (!created || created.length === 0) {
+    throw new HttpError(500, "SHARED_USER_CREATE_FAILED", "Failed to create user");
   }
 
-  const tokenEmail =
-    typeof decodedToken.email === "string"
-      ? decodedToken.email.trim().toLowerCase()
-      : "";
-
-  if (!tokenEmail || !sharedAuthConfig.allowedEmails.includes(tokenEmail)) {
-    return null;
-  }
-
-  const sharedUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, sharedAuthConfig.userId))
-    .limit(1);
-
-  if (!sharedUser || sharedUser.length === 0) {
-    throw new HttpError(
-      500,
-      "SHARED_USER_NOT_FOUND",
-      "Shared user ID not found in database"
-    );
-  }
-
-  return sharedAuthConfig.userId;
+  return created[0].id;
 }
 
 /**
@@ -85,81 +67,9 @@ export async function verifyAuth(req, db) {
       throw new HttpError(401, "INVALID_TOKEN", "Token is empty");
     }
 
-    // 2. Verify Firebase token
-    let auth;
-    try {
-      auth = getAuth();
-    } catch (error) {
-      console.error("[verifyAuth] Firebase Admin init failed:", error);
-      throw new HttpError(
-        500,
-        "FIREBASE_ADMIN_INIT_FAILED",
-        "Firebase Admin initialization failed"
-      );
-    }
-    let decodedToken;
-
-    try {
-      decodedToken = await auth.verifyIdToken(token);
-    } catch (error) {
-      console.error("[verifyAuth] Token verification failed:", error);
-
-      // Handle specific Firebase errors
-      if (error.code === "auth/id-token-expired") {
-        throw new HttpError(401, "TOKEN_EXPIRED", "Token has expired");
-      } else if (error.code === "auth/argument-error") {
-        throw new HttpError(401, "INVALID_TOKEN", "Invalid token format");
-      } else {
-        throw new HttpError(401, "INVALID_TOKEN", "Token verification failed");
-      }
-    }
-
-    let sharedUserId = null;
-    try {
-      sharedUserId = await tryResolveSharedUserId(decodedToken, db);
-    } catch (error) {
-      // If shared auth is configured but resolution fails unexpectedly, treat as server misconfiguration
-      if (error instanceof HttpError) throw error;
-      console.error("[verifyAuth] Shared auth resolution failed:", error);
-      throw new HttpError(
-        500,
-        "SHARED_AUTH_ERROR",
-        "Shared authentication resolution failed"
-      );
-    }
-    if (sharedUserId) {
-      return sharedUserId;
-    }
-
-    const firebaseUid = decodedToken.uid;
-
-    if (!firebaseUid) {
-      throw new HttpError(
-        401,
-        "INVALID_TOKEN",
-        "Token does not contain user ID"
-      );
-    }
-
-    // 3. Get user from database
-    const userResult = await db
-      .select()
-      .from(users)
-      .where(eq(users.firebaseUid, firebaseUid))
-      .limit(1);
-
-    if (!userResult || userResult.length === 0) {
-      throw new HttpError(
-        401,
-        "USER_NOT_FOUND",
-        "User not found. Please sign up first."
-      );
-    }
-
-    const user = userResult[0];
-
-    // 4. Return internal user ID
-    return user.id;
+    // 2. Shared mode: 토큰의 유효성은 서버에서 검증하지 않고(테스트용),
+    //    DB userId는 단일 공유 사용자로 매핑합니다.
+    return await resolveSharedUserId(db);
   } catch (error) {
     // Re-throw HttpError as-is
     if (error instanceof HttpError) {

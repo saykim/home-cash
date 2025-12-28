@@ -20,12 +20,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Verify authentication and get user ID
     const userId = await verifyAuth(req, db);
 
-    // GET: 전체 연례 이벤트 조회
+    // GET: 전체 연례 이벤트 조회 (공유 데이터셋 - userId 필터링 없음)
     if (req.method === "GET") {
-      const result = await db
-        .select()
-        .from(annualEvents)
-        .where(eq(annualEvents.userId, userId));
+      const result = await db.select().from(annualEvents);
       return res.status(200).json(result);
     }
 
@@ -49,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(201).json(result[0]);
     }
 
-    // PUT: 연례 이벤트 수정
+    // PUT: 연례 이벤트 수정 (공유 데이터셋 - 소유권 체크 없음)
     if (req.method === "PUT") {
       const { id } = req.query;
       const data = req.body;
@@ -68,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               : undefined,
           updatedAt: new Date(),
         })
-        .where(and(eq(annualEvents.id, id), eq(annualEvents.userId, userId)))
+        .where(eq(annualEvents.id, id))
         .returning();
 
       if (!result || result.length === 0) {
@@ -78,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(result[0]);
     }
 
-    // DELETE: 연례 이벤트 삭제
+    // DELETE: 연례 이벤트 삭제 (공유 데이터셋 - 소유권 체크 없음)
     if (req.method === "DELETE") {
       const { id } = req.query;
       if (!id || typeof id !== "string") {
@@ -86,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       const result = await db
         .delete(annualEvents)
-        .where(and(eq(annualEvents.id, id), eq(annualEvents.userId, userId)))
+        .where(eq(annualEvents.id, id))
         .returning();
 
       if (!result || result.length === 0) {
