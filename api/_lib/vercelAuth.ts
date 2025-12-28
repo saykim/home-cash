@@ -86,7 +86,17 @@ export async function verifyAuth(req, db) {
     }
 
     // 2. Verify Firebase token
-    const auth = getAuth();
+    let auth;
+    try {
+      auth = getAuth();
+    } catch (error) {
+      console.error("[verifyAuth] Firebase Admin init failed:", error);
+      throw new HttpError(
+        500,
+        "FIREBASE_ADMIN_INIT_FAILED",
+        "Firebase Admin initialization failed"
+      );
+    }
     let decodedToken;
 
     try {
@@ -104,7 +114,19 @@ export async function verifyAuth(req, db) {
       }
     }
 
-    const sharedUserId = await tryResolveSharedUserId(decodedToken, db);
+    let sharedUserId = null;
+    try {
+      sharedUserId = await tryResolveSharedUserId(decodedToken, db);
+    } catch (error) {
+      // If shared auth is configured but resolution fails unexpectedly, treat as server misconfiguration
+      if (error instanceof HttpError) throw error;
+      console.error("[verifyAuth] Shared auth resolution failed:", error);
+      throw new HttpError(
+        500,
+        "SHARED_AUTH_ERROR",
+        "Shared authentication resolution failed"
+      );
+    }
     if (sharedUserId) {
       return sharedUserId;
     }
@@ -146,7 +168,7 @@ export async function verifyAuth(req, db) {
 
     // Wrap unexpected errors
     console.error("[verifyAuth] Unexpected error:", error);
-    throw new HttpError(401, "AUTH_ERROR", "Authentication failed");
+    throw new HttpError(500, "AUTH_ERROR", "Authentication failed");
   }
 }
 
