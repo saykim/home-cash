@@ -21,7 +21,13 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatAmountInput, parseFormattedAmount } from "@/lib/utils";
-import type { TransactionType, Transaction, Asset, Category, CreditCard } from "@/types";
+import type {
+  TransactionType,
+  Transaction,
+  Asset,
+  Category,
+  CreditCard,
+} from "@/types";
 
 interface TransactionFormProps {
   children?: React.ReactNode;
@@ -31,7 +37,9 @@ interface TransactionFormProps {
   editTransaction?: Transaction | null;
   onOpenChange?: (open: boolean) => void;
   autoOpen?: boolean;
-  addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addTransaction: (
+    tx: Omit<Transaction, "id" | "createdAt" | "updatedAt">
+  ) => Promise<void>;
   updateTransaction: (id: string, tx: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   assets: Asset[];
@@ -77,7 +85,7 @@ export function TransactionForm({
         setType(editTransaction.type);
         setDate(editTransaction.date);
         setAmount(formatAmountInput(String(editTransaction.amount)));
-        setAssetId(editTransaction.assetId);
+        setAssetId(editTransaction.assetId || "");
         setToAssetId(editTransaction.toAssetId || "");
         setCategoryId(editTransaction.categoryId);
         setCardId(editTransaction.cardId || "");
@@ -103,8 +111,15 @@ export function TransactionForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!date || !amount || !assetId) {
-      alert("날짜, 금액, 자산을 모두 입력해주세요.");
+    if (!date || !amount) {
+      alert("날짜와 금액을 모두 입력해주세요.");
+      return;
+    }
+
+    // 자산 선택 검증: 신용카드를 사용하지 않는 지출이나 수입/이체인 경우 자산 필수
+    const isCardExpense = type === "EXPENSE" && cardId && cardId !== "NONE";
+    if (!isCardExpense && !assetId) {
+      alert("자산을 선택해주세요.");
       return;
     }
 
@@ -124,7 +139,7 @@ export function TransactionForm({
         date,
         type,
         amount: parseFormattedAmount(amount),
-        assetId,
+        assetId: isCardExpense ? "" : assetId, // 카드 사용 시 자산 ID 없음
         toAssetId: type === "TRANSFER" ? toAssetId : undefined,
         categoryId: type !== "TRANSFER" ? categoryId : categories[0]?.id || "",
         cardId: cardId && cardId !== "NONE" ? cardId : undefined,
@@ -136,7 +151,7 @@ export function TransactionForm({
         date,
         type,
         amount: parseFormattedAmount(amount),
-        assetId,
+        assetId: isCardExpense ? "" : assetId, // 카드 사용 시 자산 ID 없음
         toAssetId: type === "TRANSFER" ? toAssetId : undefined,
         categoryId: type !== "TRANSFER" ? categoryId : categories[0]?.id || "",
         cardId: cardId && cardId !== "NONE" ? cardId : undefined,
@@ -198,7 +213,8 @@ export function TransactionForm({
         <DialogHeader>
           <DialogTitle>{isEditMode ? "거래 수정" : "거래 추가"}</DialogTitle>
           <DialogDescription className="sr-only">
-            날짜, 금액, 자산과 카테고리(또는 이체 대상)를 입력해 거래를 저장합니다.
+            날짜, 금액, 자산과 카테고리(또는 이체 대상)를 입력해 거래를
+            저장합니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -242,23 +258,25 @@ export function TransactionForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="asset">
-              {type === "TRANSFER" ? "출금 자산" : "자산"}
-            </Label>
-            <Select value={assetId} onValueChange={setAssetId}>
-              <SelectTrigger id="asset">
-                <SelectValue placeholder="자산 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {assets.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {(!cardId || cardId === "NONE" || type !== "EXPENSE") && (
+            <div className="space-y-2">
+              <Label htmlFor="asset">
+                {type === "TRANSFER" ? "출금 자산" : "자산"}
+              </Label>
+              <Select value={assetId} onValueChange={setAssetId}>
+                <SelectTrigger id="asset">
+                  <SelectValue placeholder="자산 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {assets.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {type === "TRANSFER" && (
             <div className="space-y-2">

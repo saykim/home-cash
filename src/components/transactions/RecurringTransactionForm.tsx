@@ -19,10 +19,18 @@ import {
 } from "@/components/ui/dialog";
 import { formatAmountInput, parseFormattedAmount } from "@/lib/utils";
 import { Plus, Repeat } from "lucide-react";
-import type { TransactionType, RecurringFrequency, Asset, Category, RecurringTransaction } from "@/types";
+import type {
+  TransactionType,
+  RecurringFrequency,
+  Asset,
+  Category,
+  RecurringTransaction,
+} from "@/types";
 
 interface RecurringTransactionFormProps {
-  addRecurringTransaction: (data: Omit<RecurringTransaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<any>;
+  addRecurringTransaction: (
+    data: Omit<RecurringTransaction, "id" | "createdAt" | "updatedAt">
+  ) => Promise<any>;
   assets: Asset[];
   incomeCategories: Category[];
   expenseCategories: Category[];
@@ -32,9 +40,8 @@ export function RecurringTransactionForm({
   addRecurringTransaction,
   assets,
   incomeCategories,
-  expenseCategories
+  expenseCategories,
 }: RecurringTransactionFormProps) {
-
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState<TransactionType>("EXPENSE");
@@ -49,8 +56,17 @@ export function RecurringTransactionForm({
   const [memo, setMemo] = useState("");
 
   const handleSubmit = async () => {
-    if (!name || !amount || !assetId || !categoryId) {
-      alert("모든 필수 항목을 입력해주세요.");
+    if (!name || !amount || !categoryId) {
+      alert("필수 항목을 입력해주세요.");
+      return;
+    }
+
+    // 자산 선택 검증: 지출이면서 카드 사용 시 자산 선택 불필요 (하지만 반복 거래에 카드 선택 기능이 아직 없음 -> 추후 추가 필요?)
+    // 현재 반복 거래 폼에는 카드 선택이 없음. 따라서 지출/수입 시 자산 필수.
+    // 하지만 TransactionForm 로직과 맞추려면, 향후 카드 추가를 대비하거나 로직 유연화.
+    // 일단 현재 UI상 카드가 없으므로 자산 필수로 유지하되, 타입 에러 방지.
+    if (!assetId) {
+      alert("자산을 선택해주세요.");
       return;
     }
 
@@ -95,7 +111,8 @@ export function RecurringTransactionForm({
             반복 거래 등록
           </DialogTitle>
           <DialogDescription className="sr-only">
-            반복 거래명, 유형, 금액, 자산, 카테고리, 주기와 시작일을 입력해 반복 거래를 등록합니다.
+            반복 거래명, 유형, 금액, 자산, 카테고리, 주기와 시작일을 입력해 반복
+            거래를 등록합니다.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">

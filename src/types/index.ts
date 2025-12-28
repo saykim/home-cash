@@ -1,17 +1,22 @@
 // Asset types
-export type AssetType = 'BANK' | 'CASH';
+export type AssetType = "BANK" | "CASH";
 
 // Category types
-export type CategoryKind = 'INCOME' | 'EXPENSE';
+export type CategoryKind = "INCOME" | "EXPENSE";
 
 // Transaction types
-export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
+export type TransactionType = "INCOME" | "EXPENSE" | "TRANSFER";
 
 // Recurring frequency types
-export type RecurringFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+export type RecurringFrequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 
 // Event types (연례 이벤트)
-export type EventType = 'BIRTHDAY' | 'CELEBRATION' | 'CONDOLENCE' | 'ANNIVERSARY' | 'OTHER';
+export type EventType =
+  | "BIRTHDAY"
+  | "CELEBRATION"
+  | "CONDOLENCE"
+  | "ANNIVERSARY"
+  | "OTHER";
 
 // Phase 1 Interfaces
 export interface Asset {
@@ -38,7 +43,7 @@ export interface Transaction {
   date: string;
   type: TransactionType;
   amount: number;
-  assetId: string;
+  assetId?: string;
   toAssetId?: string;
   categoryId: string;
   cardId?: string;
@@ -105,11 +110,11 @@ export interface AnnualEvent {
   id: string;
   name: string;
   type: EventType;
-  month: number;        // 1-12
-  day: number;          // 1-31
-  amount?: number;      // 예산 금액 (선택)
+  month: number; // 1-12
+  day: number; // 1-31
+  amount?: number; // 예산 금액 (선택)
   memo?: string;
-  firstYear?: number;   // 첫 발생 연도 (나이 계산용)
+  firstYear?: number; // 첫 발생 연도 (나이 계산용)
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -155,12 +160,12 @@ export interface TransactionTemplate {
 }
 
 // Period types (일/주/월 기능)
-export type PeriodMode = 'day' | 'week' | 'month';
+export type PeriodMode = "day" | "week" | "month";
 
 export interface PeriodRange {
-  start: string;  // yyyy-MM-dd
-  end: string;    // yyyy-MM-dd
-  label: string;  // 화면 표시용
+  start: string; // yyyy-MM-dd
+  end: string; // yyyy-MM-dd
+  label: string; // 화면 표시용
 }
 
 export interface PeriodStats {

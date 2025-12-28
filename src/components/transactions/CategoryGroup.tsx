@@ -1,17 +1,17 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, Trash2, Edit } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import type { Transaction } from '@/types';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronRight, Trash2, Edit } from "lucide-react";
+import { formatCurrency } from "@/lib/formatters";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import type { Transaction } from "@/types";
 
 interface CategoryGroupProps {
   categoryName: string;
   categoryColor?: string;
   transactions: Transaction[];
   totalAmount: number;
-  getAssetName: (assetId: string) => string;
+  getAccountName: (assetId?: string, cardId?: string) => string;
   onDelete: (id: string) => void;
   defaultExpanded?: boolean;
   onSelect?: (tx: Transaction) => void;
@@ -19,13 +19,13 @@ interface CategoryGroupProps {
 
 export function CategoryGroup({
   categoryName,
-  categoryColor = '#64748b',
+  categoryColor = "#64748b",
   transactions,
   totalAmount,
-  getAssetName,
+  getAccountName,
   onDelete,
   defaultExpanded = true,
-  onSelect
+  onSelect,
 }: CategoryGroupProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -64,51 +64,57 @@ export function CategoryGroup({
               key={tx.id}
               className="relative px-5 py-4 flex items-center justify-between group hover:bg-muted/40 hover:shadow-md transition-all duration-200 cursor-pointer"
               style={{
-                ['--category-color' as any]: categoryColor,
+                ["--category-color" as any]: categoryColor,
               }}
             >
               {/* 왼쪽 바 라이트 효과 */}
-              <div 
+              <div
                 className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-[var(--category-color)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 style={{ backgroundColor: categoryColor }}
               />
-              
+
               <div className="flex-1 relative z-10">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-base">{tx.memo || categoryName}</p>
+                  <p className="font-medium text-base">
+                    {tx.memo || categoryName}
+                  </p>
                   <span
                     className={cn(
-                      'text-xs px-2 py-0.5 rounded-full',
-                      tx.type === 'INCOME'
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                        : tx.type === 'EXPENSE'
-                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                      "text-xs px-2 py-0.5 rounded-full",
+                      tx.type === "INCOME"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : tx.type === "EXPENSE"
+                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                     )}
                   >
-                    {tx.type === 'INCOME' ? '수입' : tx.type === 'EXPENSE' ? '지출' : '이체'}
+                    {tx.type === "INCOME"
+                      ? "수입"
+                      : tx.type === "EXPENSE"
+                      ? "지출"
+                      : "이체"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <p className="text-sm text-muted-foreground tabular-nums">
-                    {format(new Date(tx.date), 'yyyy.MM.dd')}
+                    {format(new Date(tx.date), "yyyy.MM.dd")}
                   </p>
                   <span className="text-muted-foreground">·</span>
                   <p className="text-sm text-muted-foreground">
-                    {getAssetName(tx.assetId)}
+                    {getAccountName(tx.assetId, tx.cardId)}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 relative z-10">
                 <p
                   className={cn(
-                    'font-bold text-lg tabular-nums transition-all duration-200 group-hover:scale-110',
-                    tx.type === 'INCOME'
-                      ? 'text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300'
-                      : 'text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300'
+                    "font-bold text-lg tabular-nums transition-all duration-200 group-hover:scale-110",
+                    tx.type === "INCOME"
+                      ? "text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300"
+                      : "text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300"
                   )}
                 >
-                  {tx.type === 'INCOME' ? '+' : '-'}
+                  {tx.type === "INCOME" ? "+" : "-"}
                   {formatCurrency(tx.amount)}
                 </p>
                 <div className="flex items-center gap-1">

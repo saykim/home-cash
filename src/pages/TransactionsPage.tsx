@@ -1,48 +1,64 @@
-import { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TransactionForm } from '@/components/transactions/TransactionForm';
-import { PeriodSelector } from '@/components/common/PeriodSelector';
-import { PeriodNavigator } from '@/components/common/PeriodNavigator';
-import { TransactionSummary } from '@/components/transactions/TransactionSummary';
-import { CategoryGroup } from '@/components/transactions/CategoryGroup';
-import { useTransactions } from '@/hooks/useTransactions';
-import { useCategories } from '@/hooks/useCategories';
-import { useAssets } from '@/hooks/useAssets';
-import { useCreditCards } from '@/hooks/useCreditCards';
-import { usePeriodStats } from '@/hooks/usePeriodStats';
-import { getPeriodRange, getPreviousPeriod, getNextPeriod } from '@/lib/periodUtils';
-import { Search, Filter, X } from 'lucide-react';
-import type { PeriodMode, Transaction } from '@/types';
+import { useState, useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TransactionForm } from "@/components/transactions/TransactionForm";
+import { PeriodSelector } from "@/components/common/PeriodSelector";
+import { PeriodNavigator } from "@/components/common/PeriodNavigator";
+import { TransactionSummary } from "@/components/transactions/TransactionSummary";
+import { CategoryGroup } from "@/components/transactions/CategoryGroup";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useCategories } from "@/hooks/useCategories";
+import { useAssets } from "@/hooks/useAssets";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { usePeriodStats } from "@/hooks/usePeriodStats";
+import {
+  getPeriodRange,
+  getPreviousPeriod,
+  getNextPeriod,
+} from "@/lib/periodUtils";
+import { Search, Filter, X } from "lucide-react";
+import type { PeriodMode, Transaction } from "@/types";
 
 export default function TransactionsPage() {
-  const [periodMode, setPeriodMode] = useState<PeriodMode>('month');
+  const [periodMode, setPeriodMode] = useState<PeriodMode>("month");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
 
   // Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [assetFilter, setAssetFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [assetFilter, setAssetFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
 
-  const periodRange = useMemo(() => getPeriodRange(periodMode, currentDate), [periodMode, currentDate]);
+  const periodRange = useMemo(
+    () => getPeriodRange(periodMode, currentDate),
+    [periodMode, currentDate]
+  );
   const stats = usePeriodStats(periodMode, currentDate);
 
-  const { allCategories, incomeCategories, expenseCategories } = useCategories();
+  const { allCategories, incomeCategories, expenseCategories } =
+    useCategories();
   const { assets } = useAssets();
   const { creditCards } = useCreditCards();
 
   // 현재 기간의 모든 거래 조회 (useLiveQuery 대신 직접 구현)
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction } =
+    useTransactions();
 
   // 기간 필터링된 거래
   const periodTransactions = useMemo(() => {
     return transactions.filter(
-      tx => tx.date >= periodRange.start && tx.date <= periodRange.end
+      (tx) => tx.date >= periodRange.start && tx.date <= periodRange.end
     );
   }, [transactions, periodRange]);
 
@@ -55,17 +71,22 @@ export default function TransactionsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('이 거래를 삭제하시겠습니까?')) {
+    if (confirm("이 거래를 삭제하시겠습니까?")) {
       await deleteTransaction(id);
     }
   };
 
   const getCategoryName = (categoryId: string) => {
-    return allCategories.find((c) => c.id === categoryId)?.name || '기타';
+    return allCategories.find((c) => c.id === categoryId)?.name || "기타";
   };
 
-  const getAssetName = (assetId: string) => {
-    return assets.find((a) => a.id === assetId)?.name || '알 수 없음';
+  const getAccountName = (assetId?: string, cardId?: string) => {
+    if (cardId && cardId !== "NONE") {
+      return (
+        creditCards.find((c) => c.id === cardId)?.name || "알 수 없음(카드)"
+      );
+    }
+    return assets.find((a) => a.id === assetId)?.name || "알 수 없음";
   };
 
   // Filter logic
@@ -74,39 +95,49 @@ export default function TransactionsPage() {
       // Search query filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const memo = tx.memo?.toLowerCase() || '';
+        const memo = tx.memo?.toLowerCase() || "";
         const categoryName = getCategoryName(tx.categoryId).toLowerCase();
-        const assetName = getAssetName(tx.assetId).toLowerCase();
+        const accountName = getAccountName(tx.assetId, tx.cardId).toLowerCase();
 
-        if (!memo.includes(query) && !categoryName.includes(query) && !assetName.includes(query)) {
+        if (
+          !memo.includes(query) &&
+          !categoryName.includes(query) &&
+          !accountName.includes(query)
+        ) {
           return false;
         }
       }
 
       // Type filter
-      if (typeFilter !== 'all' && tx.type !== typeFilter) {
+      if (typeFilter !== "all" && tx.type !== typeFilter) {
         return false;
       }
 
       // Category filter
-      if (categoryFilter !== 'all' && tx.categoryId !== categoryFilter) {
+      if (categoryFilter !== "all" && tx.categoryId !== categoryFilter) {
         return false;
       }
 
       // Asset filter
-      if (assetFilter !== 'all' && tx.assetId !== assetFilter) {
+      if (assetFilter !== "all" && tx.assetId !== assetFilter) {
         return false;
       }
 
       return true;
     });
-  }, [periodTransactions, searchQuery, typeFilter, categoryFilter, assetFilter]);
+  }, [
+    periodTransactions,
+    searchQuery,
+    typeFilter,
+    categoryFilter,
+    assetFilter,
+  ]);
 
   // 카테고리별 그룹화
   const groupedByCategory = useMemo(() => {
     const groups = new Map<string, Transaction[]>();
 
-    filteredTransactions.forEach(tx => {
+    filteredTransactions.forEach((tx) => {
       if (!groups.has(tx.categoryId)) {
         groups.set(tx.categoryId, []);
       }
@@ -114,33 +145,37 @@ export default function TransactionsPage() {
     });
 
     // 각 그룹 내에서 날짜순 정렬 (최신순)
-    groups.forEach(txList => {
+    groups.forEach((txList) => {
       txList.sort((a, b) => b.date.localeCompare(a.date));
     });
 
     // 카테고리별 총액으로 그룹 정렬
     return Array.from(groups.entries())
       .map(([categoryId, txList]) => {
-        const category = allCategories.find(c => c.id === categoryId);
+        const category = allCategories.find((c) => c.id === categoryId);
         return {
           categoryId,
           categoryName: getCategoryName(categoryId),
           categoryColor: category?.color,
           transactions: txList,
-          totalAmount: txList.reduce((sum, tx) => sum + tx.amount, 0)
+          totalAmount: txList.reduce((sum, tx) => sum + tx.amount, 0),
         };
       })
       .sort((a, b) => b.totalAmount - a.totalAmount);
   }, [filteredTransactions, allCategories]);
 
   const clearFilters = () => {
-    setSearchQuery('');
-    setTypeFilter('all');
-    setCategoryFilter('all');
-    setAssetFilter('all');
+    setSearchQuery("");
+    setTypeFilter("all");
+    setCategoryFilter("all");
+    setAssetFilter("all");
   };
 
-  const hasActiveFilters = searchQuery || typeFilter !== 'all' || categoryFilter !== 'all' || assetFilter !== 'all';
+  const hasActiveFilters =
+    searchQuery ||
+    typeFilter !== "all" ||
+    categoryFilter !== "all" ||
+    assetFilter !== "all";
 
   const handleSelectTransaction = (tx: Transaction) => {
     setEditingTransaction(tx);
@@ -183,7 +218,7 @@ export default function TransactionsPage() {
             />
           </div>
           <Button
-            variant={showFilters ? 'default' : 'outline'}
+            variant={showFilters ? "default" : "outline"}
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
           >
@@ -242,7 +277,8 @@ export default function TransactionsPage() {
 
         {hasActiveFilters && (
           <div className="text-sm text-muted-foreground">
-            {filteredTransactions.length}개의 거래 (전체 {periodTransactions.length}개)
+            {filteredTransactions.length}개의 거래 (전체{" "}
+            {periodTransactions.length}개)
           </div>
         )}
       </div>
@@ -264,7 +300,7 @@ export default function TransactionsPage() {
               categoryColor={group.categoryColor}
               transactions={group.transactions}
               totalAmount={group.totalAmount}
-              getAssetName={getAssetName}
+              getAccountName={getAccountName}
               onDelete={handleDelete}
               defaultExpanded={index < 3}
               onSelect={handleSelectTransaction}
