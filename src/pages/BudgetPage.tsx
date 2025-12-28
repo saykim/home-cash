@@ -119,10 +119,13 @@ export default function BudgetPage() {
       return;
     }
 
+    // Remove commas before converting to number
+    const numericAmount = Number(budgetAmount.replace(/,/g, ''));
+
     if (editingBudget) {
-      await updateBudget(editingBudget.id, Number(budgetAmount));
+      await updateBudget(editingBudget.id, numericAmount);
     } else {
-      await addBudget(selectedCategoryId, Number(budgetAmount), monthStr);
+      await addBudget(selectedCategoryId, numericAmount, monthStr);
     }
 
     resetForm();
@@ -138,7 +141,8 @@ export default function BudgetPage() {
   const handleEdit = (budgetId: string, categoryId: string, amount: number) => {
     setEditingBudget({ id: budgetId, categoryId, amount });
     setSelectedCategoryId(categoryId);
-    setBudgetAmount(String(amount));
+    // Format with commas
+    setBudgetAmount(amount.toLocaleString('ko-KR'));
     setDialogOpen(true);
   };
 
@@ -308,9 +312,19 @@ export default function BudgetPage() {
                     <Label htmlFor="amount">예산 금액</Label>
                     <Input
                       id="amount"
-                      type="number"
+                      type="text"
                       value={budgetAmount}
-                      onChange={(e) => setBudgetAmount(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Only allow numbers and commas
+                        const numericValue = value.replace(/[^\d]/g, '');
+                        // Format with commas
+                        if (numericValue) {
+                          setBudgetAmount(Number(numericValue).toLocaleString('ko-KR'));
+                        } else {
+                          setBudgetAmount('');
+                        }
+                      }}
                       placeholder="0"
                     />
                   </div>
