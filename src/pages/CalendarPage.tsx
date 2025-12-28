@@ -25,7 +25,6 @@ import { useAnnualEvents } from "@/hooks/useAnnualEvents";
 import { useBudgets } from "@/hooks/useBudgets";
 import { formatCurrency } from "@/lib/formatters";
 import { getEventTypeLabel, calculateYears } from "@/lib/eventUtils";
-import { getTopCategoryIcon } from "@/lib/categoryIcons";
 import {
   format,
   startOfMonth,
@@ -44,8 +43,6 @@ import {
   CreditCard,
   Calendar,
   Plus,
-  TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types";
@@ -470,15 +467,11 @@ export default function CalendarPage() {
               events,
               comparison,
             } = getDayData(date);
-            const hasData = dayTxs.length > 0;
             const isSelected = Boolean(
               selectedDate &&
                 format(selectedDate, "yyyy-MM-dd") ===
                   format(date, "yyyy-MM-dd")
             );
-
-            // Get top category icon
-            const CategoryIcon = getTopCategoryIcon(dayTxs, allCategories);
 
             // Check if weekend
             const dayOfWeek = date.getDay();
