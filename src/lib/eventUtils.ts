@@ -91,11 +91,3 @@ export function groupEventsByType(events: AnnualEvent[]): Record<EventType, Annu
   }, {} as Record<EventType, AnnualEvent[]>);
 }
 
-/**
- * Sort events by upcoming date
- */
-export function sortEventsByUpcoming(events: AnnualEvent[]): AnnualEvent[] {
-  return [...events].sort((a, b) => {
-    return getDaysUntilEvent(a) - getDaysUntilEvent(b);
-  });
-}
