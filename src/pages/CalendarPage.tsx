@@ -20,6 +20,9 @@ import { CumulativeChart } from "@/components/calendar/CumulativeChart";
 import { BudgetProgress } from "@/components/calendar/BudgetProgress";
 import { RangeStats } from "@/components/calendar/RangeStats";
 import { CategoryFilter } from "@/components/calendar/CategoryFilter";
+import { CalendarBadge, getCardColor } from "@/components/calendar/CalendarBadge";
+import { TodaySchedule } from "@/components/calendar/TodaySchedule";
+import { WeeklySummary } from "@/components/calendar/WeeklySummary";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useAssets } from "@/hooks/useAssets";
@@ -322,7 +325,7 @@ export default function CalendarPage() {
   const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold">캘린더</h1>
@@ -392,6 +395,24 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      {/* Main Content with Sidebar Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
+        {/* Left Sidebar - Today's Schedule & Weekly Summary */}
+        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start order-2 lg:order-1">
+          <TodaySchedule
+            transactions={transactions}
+            categories={allCategories}
+            creditCards={creditCards}
+            annualEvents={annualEvents}
+          />
+          <WeeklySummary
+            transactions={transactions}
+            categories={allCategories}
+          />
+        </div>
+
+        {/* Right Main Content - Calendar and Charts */}
+        <div className="space-y-4 order-1 lg:order-2">
       {/* Monthly Cumulative Chart */}
       <Card className="p-4">
         <CumulativeChart
@@ -444,7 +465,7 @@ export default function CalendarPage() {
       {/* Calendar Grid */}
       <TooltipProvider>
         <div
-          className="grid grid-cols-7 gap-2"
+          className="grid grid-cols-7 gap-1"
           onMouseUp={handleRangeMouseUp}
           onMouseLeave={handleRangeMouseUp}
         >
@@ -546,7 +567,7 @@ export default function CalendarPage() {
                 onMouseOver={() => handleRangeMouseOver(date)}
                 title={tooltipText}
                 className={cn(
-                  "group relative aspect-square p-1.5 rounded-lg text-sm transition-all border flex flex-col",
+                  "group relative h-24 p-1 rounded-lg text-sm transition-all border flex flex-col",
                   isToday(date) && "ring-2 ring-primary",
                   isSelected &&
                     "bg-primary text-primary-foreground border-primary",
@@ -587,85 +608,47 @@ export default function CalendarPage() {
                   <div className="flex items-center gap-1 flex-wrap">
                     <span
                       className={cn(
-                        "font-medium text-sm",
+                        "font-medium text-xs",
                         isToday(date) && !isSelected && "text-primary"
                       )}
                     >
                       {format(date, "d")}
                     </span>
                     {dayTxs.length > 0 && (
-                      <span
+                      <CalendarBadge
+                        variant="transaction"
                         className={cn(
-                          "text-[9px] px-1 rounded-full",
-                          isSelected
-                            ? "bg-primary-foreground/20 text-primary-foreground"
-                            : "bg-muted text-muted-foreground"
+                          isSelected && "bg-primary-foreground/20 text-primary-foreground"
                         )}
                       >
                         {dayTxs.length}
-                      </span>
+                      </CalendarBadge>
                     )}
-                    {billingCards.slice(0, 2).map((card, idx) => {
-                      const getCardColor = (cardName: string) => {
-                        const name = cardName.toLowerCase();
-                        if (name.includes("신한")) return "bg-blue-600";
-                        if (name.includes("국민") || name.includes("kb"))
-                          return "bg-amber-500";
-                        if (name.includes("삼성")) return "bg-indigo-600";
-                        if (name.includes("현대")) return "bg-emerald-600";
-                        if (name.includes("롯데")) return "bg-red-500";
-                        if (name.includes("우리")) return "bg-cyan-600";
-                        if (name.includes("하나")) return "bg-teal-600";
-                        if (name.includes("농협") || name.includes("nh"))
-                          return "bg-green-600";
-                        if (name.includes("카카오")) return "bg-yellow-500";
-                        if (name.includes("토스")) return "bg-blue-500";
-                        return "bg-gray-600";
-                      };
-
-                      return (
-                        <Tooltip key={idx}>
-                          <TooltipTrigger asChild>
-                            <span
-                              className={cn(
-                                "text-[9px] px-1 py-0.5 rounded font-bold cursor-help leading-none text-white",
-                                getCardColor(card.name)
-                              )}
-                            >
-                              {card.name.slice(0, 2)}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs font-semibold">
-                              {card.name} 결제일
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
+                    {billingCards.slice(0, 2).map((card, idx) => (
+                      <CalendarBadge
+                        key={idx}
+                        variant="card"
+                        cardColor={getCardColor(card.name)}
+                        tooltip={`${card.name} 결제일`}
+                        className="cursor-help"
+                      >
+                        {card.name.slice(0, 2)}
+                      </CalendarBadge>
+                    ))}
                     {billingCards.length > 2 && (
                       <span className="text-[9px] text-muted-foreground">
                         +{billingCards.length - 2}
                       </span>
                     )}
                     {events.slice(0, 2).map((event, idx) => (
-                      <Tooltip key={idx}>
-                        <TooltipTrigger asChild>
-                          <span
-                            className={cn(
-                              "text-[9px] px-1 py-0.5 rounded font-bold cursor-help leading-none",
-                              isSelected
-                                ? "bg-pink-500 text-white"
-                                : "bg-pink-500 text-white"
-                            )}
-                          >
-                            {event.name.slice(0, 2)}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-xs font-semibold">{event.name}</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <CalendarBadge
+                        key={idx}
+                        variant="event"
+                        tooltip={event.name}
+                        className="cursor-help font-bold"
+                      >
+                        {event.name.slice(0, 2)}
+                      </CalendarBadge>
                     ))}
                     {events.length > 2 && (
                       <span className="text-[9px] text-muted-foreground">
@@ -951,6 +934,8 @@ export default function CalendarPage() {
           }}
         />
       )}
+        </div>
+      </div>
     </div>
   );
 }
