@@ -142,7 +142,7 @@ export const transactionTemplates = pgTable("transaction_templates", {
   name: text("name").notNull(),
   type: text("type").notNull(),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-  assetId: uuid("asset_id").notNull(),
+  assetId: uuid("asset_id"),
   toAssetId: uuid("to_asset_id"),
   categoryId: uuid("category_id").notNull(),
   cardId: uuid("card_id"),
