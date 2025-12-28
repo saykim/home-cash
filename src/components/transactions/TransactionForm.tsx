@@ -117,21 +117,32 @@ export function TransactionForm({
     }
 
     // 자산 선택 검증: 신용카드를 사용하지 않는 지출이나 수입/이체인 경우 자산 필수
-    const isCardExpense = type === "EXPENSE" && cardId && cardId !== "NONE";
+    const isCardExpense = type === "EXPENSE" && cardId && cardId !== "NONE" && cardId.trim() !== "";
     if (!isCardExpense && !assetId) {
       alert("자산을 선택해주세요.");
       return;
     }
 
-    if (type !== "TRANSFER" && !categoryId) {
-      alert("카테고리를 선택해주세요.");
-      return;
+    // 카테고리 검증 (스키마에서 notNull이므로 항상 필수)
+    if (!categoryId || categoryId.trim() === "") {
+      // 이체일 때는 기본 카테고리 사용 (categories 배열이 비어있지 않은 경우)
+      if (type === "TRANSFER" && categories.length > 0) {
+        // 이체일 때는 첫 번째 카테고리를 사용
+      } else {
+        alert("카테고리를 선택해주세요.");
+        return;
+      }
     }
 
     if (type === "TRANSFER" && !toAssetId) {
       alert("이체 대상 자산을 선택해주세요.");
       return;
     }
+
+    // 이체일 때 categoryId가 없으면 첫 번째 카테고리 사용
+    const finalCategoryId = type === "TRANSFER" && (!categoryId || categoryId.trim() === "")
+      ? (categories[0]?.id || "")
+      : categoryId;
 
     if (isEditMode && editTransaction) {
       // Edit mode - update existing transaction
@@ -141,8 +152,8 @@ export function TransactionForm({
         amount: parseFormattedAmount(amount),
         assetId: isCardExpense ? "" : assetId, // 카드 사용 시 자산 ID 없음
         toAssetId: type === "TRANSFER" ? toAssetId : undefined,
-        categoryId: type !== "TRANSFER" ? categoryId : categories[0]?.id || "",
-        cardId: cardId && cardId !== "NONE" ? cardId : undefined,
+        categoryId: finalCategoryId,
+        cardId: cardId && cardId !== "NONE" && cardId.trim() !== "" ? cardId : undefined,
         memo,
       });
     } else {
@@ -153,8 +164,8 @@ export function TransactionForm({
         amount: parseFormattedAmount(amount),
         assetId: isCardExpense ? "" : assetId, // 카드 사용 시 자산 ID 없음
         toAssetId: type === "TRANSFER" ? toAssetId : undefined,
-        categoryId: type !== "TRANSFER" ? categoryId : categories[0]?.id || "",
-        cardId: cardId && cardId !== "NONE" ? cardId : undefined,
+        categoryId: finalCategoryId,
+        cardId: cardId && cardId !== "NONE" && cardId.trim() !== "" ? cardId : undefined,
         memo,
       });
     }

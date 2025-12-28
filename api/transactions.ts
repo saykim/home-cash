@@ -64,8 +64,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "POST") {
       const data = req.body;
 
+      // 필수 필드 검증
+      if (!data.date || !data.type || !data.amount) {
+        return res.status(400).json({ error: "날짜, 유형, 금액은 필수입니다." });
+      }
+
+      // categoryId 검증 (스키마에서 notNull이므로 항상 필수)
+      if (!data.categoryId || (typeof data.categoryId === "string" && data.categoryId.trim() === "")) {
+        return res.status(400).json({ error: "카테고리는 필수입니다." });
+      }
+
       // Sanitize assetId: convert empty string to null for UUID compatibility
-      const sanitizedAssetId = data.assetId || null;
+      const sanitizedAssetId = data.assetId && data.assetId.trim() !== "" ? data.assetId : null;
+
+      // 카드 지출인 경우 assetId가 없어도 됨
+      const isCardExpense = data.type === "EXPENSE" && data.cardId && data.cardId !== "NONE" && data.cardId.trim() !== "";
+      if (!isCardExpense && !sanitizedAssetId) {
+        return res.status(400).json({ error: "자산을 선택해주세요." });
+      }
 
       // 트랜잭션 추가
       const [newTx] = await db
@@ -76,10 +92,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           type: data.type,
           amount: String(data.amount),
           assetId: sanitizedAssetId,
-          toAssetId: data.toAssetId,
-          categoryId: data.categoryId,
-          cardId: data.cardId,
-          memo: data.memo,
+          toAssetId: data.toAssetId && data.toAssetId.trim() !== "" ? data.toAssetId : null,
+          categoryId: data.categoryId, // 항상 필수 (스키마에서 notNull)
+          cardId: data.cardId && data.cardId !== "NONE" && data.cardId.trim() !== "" ? data.cardId : null,
+          memo: data.memo || null,
         })
         .returning();
 
