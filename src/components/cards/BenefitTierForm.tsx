@@ -45,9 +45,8 @@ export function BenefitTierForm({ cardId, addBenefitTier }: BenefitTierFormProps
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
-          <Plus className="h-3 w-3 mr-1" />
-          혜택 추가
+        <Button size="icon" variant="ghost" className="h-7 w-7" title="혜택 추가">
+          <Plus className="h-3.5 w-3.5" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

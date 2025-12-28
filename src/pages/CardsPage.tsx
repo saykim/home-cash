@@ -29,7 +29,7 @@ export default function CardsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">신용카드 관리</h1>
         <CreditCardForm addCreditCard={addCreditCard} />
@@ -44,79 +44,84 @@ export default function CardsPage() {
           </div>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {creditCards.map((card) => {
             const cardTiers = allTiers
               .filter((t) => t.cardId === card.id)
               .sort((a, b) => a.threshold - b.threshold);
 
             return (
-              <Card key={card.id}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10">
-                      <CreditCard className="h-5 w-5 text-primary" />
+              <Card key={card.id} className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10">
+                        <CreditCard className="h-4 w-4 text-primary" />
+                      </div>
+                      <CardTitle className="text-base">{card.name}</CardTitle>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{card.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        결제일: 매월 {card.billingDay}일 · 결제계좌: {getAssetName(card.linkedAssetId)}
-                      </p>
+                    <div className="flex items-center gap-0.5">
+                      <CreditCardForm
+                        mode="edit"
+                        card={card}
+                        updateCreditCard={updateCreditCard}
+                        trigger={
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="수정">
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                        }
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:text-destructive"
+                        onClick={() => handleDeleteCard(card.id)}
+                        title="삭제"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <CreditCardForm
-                      mode="edit"
-                      card={card}
-                      updateCreditCard={updateCreditCard}
-                      trigger={
-                        <Button variant="ghost" size="icon" title="수정">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      }
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteCard(card.id)}
-                      className="hover:text-destructive"
-                      title="삭제"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      결제일: 매월 {card.billingDay}일
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      계좌: {getAssetName(card.linkedAssetId)}
+                    </p>
                   </div>
                 </CardHeader>
 
-                <CardContent>
+                <CardContent className="pt-3">
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">이용 기간</span>
-                      <span>
+                      <span className="text-right">
                         {card.startOffset === -1 ? '전월' : '당월'} {card.startDay}일 ~{' '}
                         {card.endOffset === -1 ? '전월' : '당월'} {card.endDay}일
                       </span>
                     </div>
 
-                    <div className="pt-3 border-t">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-semibold flex items-center gap-1">
-                          <Award className="h-4 w-4" />
+                    <div className="pt-2 border-t">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-semibold flex items-center gap-1">
+                          <Award className="h-3.5 w-3.5" />
                           혜택 등급
                         </h4>
                         <BenefitTierForm cardId={card.id} addBenefitTier={addBenefitTier} />
                       </div>
 
                       {cardTiers.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-2">등록된 혜택이 없습니다</p>
+                        <p className="text-xs text-muted-foreground text-center py-3">등록된 혜택이 없습니다</p>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                           {cardTiers.map((tier) => (
                             <div
                               key={tier.id}
-                              className="flex items-center justify-between p-2 rounded bg-muted/50 group"
+                              className="flex items-center justify-between p-2 rounded bg-muted/50 hover:bg-muted/80 transition-colors group"
                             >
-                              <div>
-                                <p className="text-sm font-medium">{tier.description}</p>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate">{tier.description}</p>
                                 <p className="text-xs text-muted-foreground">
                                   {formatCurrency(tier.threshold)} 이상
                                 </p>
@@ -124,8 +129,9 @@ export default function CardsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                                 onClick={() => handleDeleteTier(tier.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="삭제"
                               >
                                 <Trash2 className="h-3 w-3 text-destructive" />
                               </Button>
