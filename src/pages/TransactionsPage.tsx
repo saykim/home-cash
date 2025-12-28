@@ -11,6 +11,7 @@ import { CategoryGroup } from '@/components/transactions/CategoryGroup';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useAssets } from '@/hooks/useAssets';
+import { useCreditCards } from '@/hooks/useCreditCards';
 import { usePeriodStats } from '@/hooks/usePeriodStats';
 import { getPeriodRange, getPreviousPeriod, getNextPeriod } from '@/lib/periodUtils';
 import { Search, Filter, X } from 'lucide-react';
@@ -30,11 +31,12 @@ export default function TransactionsPage() {
   const periodRange = useMemo(() => getPeriodRange(periodMode, currentDate), [periodMode, currentDate]);
   const stats = usePeriodStats(periodMode, currentDate);
 
-  const { allCategories } = useCategories();
+  const { allCategories, incomeCategories, expenseCategories } = useCategories();
   const { assets } = useAssets();
+  const { creditCards } = useCreditCards();
 
   // 현재 기간의 모든 거래 조회 (useLiveQuery 대신 직접 구현)
-  const { transactions, deleteTransaction } = useTransactions();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
 
   // 기간 필터링된 거래
   const periodTransactions = useMemo(() => {
@@ -259,7 +261,15 @@ export default function TransactionsPage() {
         )}
       </div>
 
-      <TransactionForm />
+      <TransactionForm
+        addTransaction={addTransaction}
+        updateTransaction={updateTransaction}
+        deleteTransaction={deleteTransaction}
+        assets={assets}
+        incomeCategories={incomeCategories}
+        expenseCategories={expenseCategories}
+        creditCards={creditCards}
+      />
     </div>
   );
 }

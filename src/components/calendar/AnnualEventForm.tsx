@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAnnualEvents } from "@/hooks/useAnnualEvents";
 import { formatAmountInput, parseFormattedAmount } from "@/lib/utils";
 import type { EventType, AnnualEvent } from "@/types";
 
@@ -28,6 +27,9 @@ interface AnnualEventFormProps {
   editEvent?: AnnualEvent | null;
   onOpenChange?: (open: boolean) => void;
   onSaved?: (payload: { month: number; day: number }) => void;
+  addAnnualEvent: (event: Omit<AnnualEvent, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateAnnualEvent: (id: string, event: Partial<AnnualEvent>) => Promise<void>;
+  deleteAnnualEvent: (id: string) => Promise<void>;
 }
 
 export function AnnualEventForm({
@@ -35,6 +37,9 @@ export function AnnualEventForm({
   editEvent = null,
   onOpenChange,
   onSaved,
+  addAnnualEvent,
+  updateAnnualEvent,
+  deleteAnnualEvent,
 }: AnnualEventFormProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -44,9 +49,6 @@ export function AnnualEventForm({
   const [amount, setAmount] = useState("");
   const [firstYear, setFirstYear] = useState("");
   const [memo, setMemo] = useState("");
-
-  const { addAnnualEvent, updateAnnualEvent, deleteAnnualEvent } =
-    useAnnualEvents();
   const isEditMode = Boolean(editEvent);
 
   // Calculate maximum days in selected month (use 2024 as reference for leap year)

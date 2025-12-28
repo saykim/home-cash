@@ -20,12 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTransactions } from "@/hooks/useTransactions";
-import { useAssets } from "@/hooks/useAssets";
-import { useCategories } from "@/hooks/useCategories";
-import { useCreditCards } from "@/hooks/useCreditCards";
 import { formatAmountInput, parseFormattedAmount } from "@/lib/utils";
-import type { TransactionType, Transaction } from "@/types";
+import type { TransactionType, Transaction, Asset, Category, CreditCard } from "@/types";
 
 interface TransactionFormProps {
   children?: React.ReactNode;
@@ -34,6 +30,13 @@ interface TransactionFormProps {
   editTransaction?: Transaction | null;
   onOpenChange?: (open: boolean) => void;
   autoOpen?: boolean;
+  addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateTransaction: (id: string, tx: Partial<Transaction>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+  assets: Asset[];
+  incomeCategories: Category[];
+  expenseCategories: Category[];
+  creditCards: CreditCard[];
 }
 
 export function TransactionForm({
@@ -43,7 +46,14 @@ export function TransactionForm({
   editTransaction = null,
   onOpenChange,
   autoOpen = false,
-}: TransactionFormProps = {}) {
+  addTransaction,
+  updateTransaction,
+  deleteTransaction,
+  assets,
+  incomeCategories,
+  expenseCategories,
+  creditCards,
+}: TransactionFormProps) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<TransactionType>(defaultType);
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -53,12 +63,6 @@ export function TransactionForm({
   const [categoryId, setCategoryId] = useState("");
   const [cardId, setCardId] = useState("");
   const [memo, setMemo] = useState("");
-
-  const { addTransaction, updateTransaction, deleteTransaction } =
-    useTransactions();
-  const { assets } = useAssets();
-  const { incomeCategories, expenseCategories } = useCategories();
-  const { creditCards } = useCreditCards();
 
   const categories = type === "INCOME" ? incomeCategories : expenseCategories;
   const isEditMode = Boolean(editTransaction);

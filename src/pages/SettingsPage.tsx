@@ -50,6 +50,8 @@ export default function SettingsPage() {
   } = useRecurringTransactions();
   const {
     annualEvents,
+    addAnnualEvent,
+    updateAnnualEvent,
     deleteAnnualEvent,
     toggleActiveStatus: toggleEventStatus,
     refetch: refetchAnnualEvents,
@@ -535,7 +537,12 @@ export default function SettingsPage() {
                 <CardTitle className="text-base font-semibold">
                   연례 이벤트
                 </CardTitle>
-                <AnnualEventForm onSaved={() => refetchAnnualEvents()} />
+                <AnnualEventForm
+                  addAnnualEvent={addAnnualEvent}
+                  updateAnnualEvent={updateAnnualEvent}
+                  deleteAnnualEvent={deleteAnnualEvent}
+                  onSaved={() => refetchAnnualEvents()}
+                />
               </div>
             </CardHeader>
             <CardContent className="p-4">

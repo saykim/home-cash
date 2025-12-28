@@ -11,18 +11,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useBenefitTiers } from '@/hooks/useCreditCards';
+import type { BenefitTier } from '@/types';
 
 interface BenefitTierFormProps {
   cardId: string;
+  addBenefitTier: (tier: Omit<BenefitTier, 'id' | 'createdAt'>) => Promise<void>;
 }
 
-export function BenefitTierForm({ cardId }: BenefitTierFormProps) {
+export function BenefitTierForm({ cardId, addBenefitTier }: BenefitTierFormProps) {
   const [open, setOpen] = useState(false);
   const [threshold, setThreshold] = useState('');
   const [description, setDescription] = useState('');
-
-  const { addBenefitTier } = useBenefitTiers();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

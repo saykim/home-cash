@@ -22,6 +22,7 @@ import { RangeStats } from "@/components/calendar/RangeStats";
 import { CategoryFilter } from "@/components/calendar/CategoryFilter";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
+import { useAssets } from "@/hooks/useAssets";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useAnnualEvents } from "@/hooks/useAnnualEvents";
 import { useBudgets } from "@/hooks/useBudgets";
@@ -73,11 +74,12 @@ export default function CalendarPage() {
   const monthStr = format(currentMonth, "yyyy-MM");
   const prevMonthStr = format(subMonths(currentMonth, 1), "yyyy-MM");
 
-  const { transactions } = useTransactions(monthStr);
+  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions(monthStr);
   const { transactions: prevMonthTransactions } = useTransactions(prevMonthStr);
-  const { allCategories } = useCategories();
+  const { allCategories, incomeCategories, expenseCategories } = useCategories();
+  const { assets } = useAssets();
   const { creditCards } = useCreditCards();
-  const { annualEvents, refetch: refetchAnnualEvents } = useAnnualEvents();
+  const { annualEvents, addAnnualEvent, updateAnnualEvent, deleteAnnualEvent, refetch: refetchAnnualEvents } = useAnnualEvents();
   const { budgets } = useBudgets(monthStr);
 
   // Filter transactions by selected categories
@@ -325,6 +327,9 @@ export default function CalendarPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">캘린더</h1>
           <AnnualEventForm
+            addAnnualEvent={addAnnualEvent}
+            updateAnnualEvent={updateAnnualEvent}
+            deleteAnnualEvent={deleteAnnualEvent}
             onSaved={({ month, day }) => {
               // 저장 후 즉시 캘린더가 갱신되고, 해당 월/일로 이동해 사용자가 바로 확인 가능하도록 함
               refetchAnnualEvents();
@@ -894,6 +899,13 @@ export default function CalendarPage() {
               setEditingTransaction(null);
             }
           }}
+          addTransaction={addTransaction}
+          updateTransaction={updateTransaction}
+          deleteTransaction={deleteTransaction}
+          assets={assets}
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+          creditCards={creditCards}
         />
       )}
 
@@ -907,6 +919,13 @@ export default function CalendarPage() {
               setQuickAddDate(null);
             }
           }}
+          addTransaction={addTransaction}
+          updateTransaction={updateTransaction}
+          deleteTransaction={deleteTransaction}
+          assets={assets}
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+          creditCards={creditCards}
         >
           <div style={{ display: "none" }} />
         </TransactionForm>
@@ -916,6 +935,9 @@ export default function CalendarPage() {
       {editingEvent && (
         <AnnualEventForm
           editEvent={editingEvent}
+          addAnnualEvent={addAnnualEvent}
+          updateAnnualEvent={updateAnnualEvent}
+          deleteAnnualEvent={deleteAnnualEvent}
           onSaved={({ month, day }) => {
             refetchAnnualEvents();
             const target = new Date(currentMonth.getFullYear(), month - 1, day);

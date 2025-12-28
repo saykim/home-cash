@@ -33,10 +33,10 @@ import { ko } from "date-fns/locale";
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { allCategories } = useCategories();
+  const { allCategories, incomeCategories, expenseCategories } = useCategories();
   const { assets, totalBalance } = useAssets();
-  const { transactions } = useTransactions();
-  useCreditCards(); // Hook for side effects
+  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+  const { creditCards } = useCreditCards();
   const monthStr = format(new Date(), "yyyy-MM");
   const { performances } = useCardPerformance(monthStr);
   const { annualEvents } = useAnnualEvents();
@@ -215,13 +215,31 @@ export default function HomePage() {
         <div className="col-span-8 space-y-6">
           {/* Quick Transaction Buttons */}
           <div className="flex gap-3">
-            <TransactionForm defaultType="INCOME">
+            <TransactionForm
+              defaultType="INCOME"
+              addTransaction={addTransaction}
+              updateTransaction={updateTransaction}
+              deleteTransaction={deleteTransaction}
+              assets={assets}
+              incomeCategories={incomeCategories}
+              expenseCategories={expenseCategories}
+              creditCards={creditCards}
+            >
               <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm">
                 <ArrowUpRight className="h-5 w-5" />
                 수입 입력
               </button>
             </TransactionForm>
-            <TransactionForm defaultType="EXPENSE">
+            <TransactionForm
+              defaultType="EXPENSE"
+              addTransaction={addTransaction}
+              updateTransaction={updateTransaction}
+              deleteTransaction={deleteTransaction}
+              assets={assets}
+              incomeCategories={incomeCategories}
+              expenseCategories={expenseCategories}
+              creditCards={creditCards}
+            >
               <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-sm">
                 <ArrowDownRight className="h-5 w-5" />
                 지출 입력

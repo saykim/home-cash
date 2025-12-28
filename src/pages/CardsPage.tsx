@@ -9,7 +9,7 @@ import { CreditCard, Trash2, Award } from 'lucide-react';
 
 export default function CardsPage() {
   const { creditCards, addCreditCard, deleteCreditCard } = useCreditCards();
-  const { allTiers, deleteBenefitTier } = useBenefitTiers();
+  const { allTiers, addBenefitTier, deleteBenefitTier } = useBenefitTiers();
   const { assets } = useAssets();
 
   const handleDeleteCard = async (id: string) => {
@@ -90,7 +90,7 @@ export default function CardsPage() {
                           <Award className="h-4 w-4" />
                           혜택 등급
                         </h4>
-                        <BenefitTierForm cardId={card.id} />
+                        <BenefitTierForm cardId={card.id} addBenefitTier={addBenefitTier} />
                       </div>
 
                       {cardTiers.length === 0 ? (
