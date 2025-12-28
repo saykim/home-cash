@@ -415,20 +415,6 @@ export default function CalendarPage() {
         </Card>
       )}
 
-      {/* Range Statistics */}
-      {rangeStats && (
-        <Card className="p-4">
-          <RangeStats stats={rangeStats} onClear={clearRangeSelection} />
-        </Card>
-      )}
-
-      {/* Range Selection Hint */}
-      {!rangeStats && (
-        <div className="text-xs text-muted-foreground text-center py-2">
-          💡 Shift 키를 누른 상태로 날짜를 드래그하면 기간 통계를 볼 수 있습니다
-        </div>
-      )}
-
       <CategoryFilter
         categories={allCategories}
         selectedCategoryIds={selectedCategories}
@@ -679,6 +665,20 @@ export default function CalendarPage() {
           })}
         </div>
       </TooltipProvider>
+
+      {/* Range Statistics - Below Calendar */}
+      {rangeStats && (
+        <Card className="p-4">
+          <RangeStats stats={rangeStats} onClear={clearRangeSelection} />
+        </Card>
+      )}
+
+      {/* Range Selection Hint */}
+      {!rangeStats && (
+        <div className="text-xs text-muted-foreground text-center py-2">
+          💡 Shift 키를 누른 상태로 날짜를 드래그하면 기간 통계를 볼 수 있습니다
+        </div>
+      )}
 
       {/* Selected Day Transactions */}
       {selectedDate &&
