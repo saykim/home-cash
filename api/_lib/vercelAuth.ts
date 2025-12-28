@@ -3,6 +3,59 @@ import { getAuth } from "./firebaseAdmin";
 import { HttpError } from "./vercelHttp";
 import { users } from "../db-schema";
 
+function parseAllowList(value) {
+  if (!value || typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => item.length > 0);
+}
+
+const sharedAuthConfig = (() => {
+  const userId =
+    typeof process.env.SHARED_USER_ID === "string"
+      ? process.env.SHARED_USER_ID.trim()
+      : "";
+  const allowedEmails = parseAllowList(process.env.SHARED_ALLOWED_EMAILS);
+
+  return {
+    enabled: userId.length > 0 && allowedEmails.length > 0,
+    userId: userId.length > 0 ? userId : null,
+    allowedEmails,
+  };
+})();
+
+async function tryResolveSharedUserId(decodedToken, db) {
+  if (!sharedAuthConfig.enabled) {
+    return null;
+  }
+
+  const tokenEmail =
+    typeof decodedToken.email === "string"
+      ? decodedToken.email.trim().toLowerCase()
+      : "";
+
+  if (!tokenEmail || !sharedAuthConfig.allowedEmails.includes(tokenEmail)) {
+    return null;
+  }
+
+  const sharedUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, sharedAuthConfig.userId))
+    .limit(1);
+
+  if (!sharedUser || sharedUser.length === 0) {
+    throw new HttpError(
+      500,
+      "SHARED_USER_NOT_FOUND",
+      "Shared user ID not found in database"
+    );
+  }
+
+  return sharedAuthConfig.userId;
+}
+
 /**
  * Authentication Middleware for Vercel Serverless Functions
  *
@@ -51,10 +104,19 @@ export async function verifyAuth(req, db) {
       }
     }
 
+    const sharedUserId = await tryResolveSharedUserId(decodedToken, db);
+    if (sharedUserId) {
+      return sharedUserId;
+    }
+
     const firebaseUid = decodedToken.uid;
 
     if (!firebaseUid) {
-      throw new HttpError(401, "INVALID_TOKEN", "Token does not contain user ID");
+      throw new HttpError(
+        401,
+        "INVALID_TOKEN",
+        "Token does not contain user ID"
+      );
     }
 
     // 3. Get user from database

@@ -28,6 +28,26 @@
 - **Date**: date-fns (Korean locale)
 - **PWA**: vite-plugin-pwa
 
+## 서버 환경 변수
+
+| 이름 | 범위 | 설명 |
+| --- | --- | --- |
+| `DATABASE_URL` | Server | Neon Postgres 접속 URL |
+| `FIREBASE_PROJECT_ID` | Server | Firebase Admin 서비스 계정 Project ID |
+| `FIREBASE_CLIENT_EMAIL` | Server | Firebase Admin 서비스 계정 이메일 |
+| `FIREBASE_PRIVATE_KEY` | Server | Firebase Admin 서비스 계정 Private Key (`\n`은 실제 줄바꿈으로 치환) |
+| `SHARED_USER_ID` | Server | 두 계정이 함께 사용할 `users.id` (UUID) |
+| `SHARED_ALLOWED_EMAILS` | Server | 공유 모드 허용 이메일 목록, 콤마 구분 (예: `sangyeony@gmail.com,junghyune@gmail.com`) |
+| `VITE_GOOGLE_CLIENT_ID` | Client | Firebase Google Provider용 OAuth Client ID |
+
+> ⚙️ **`SHARED_USER_ID` 설정 절차**  
+> 1. DB 콘솔에서 `SELECT id, email FROM users;` 실행  
+> 2. 기존 데이터가 저장된 사용자 행의 `id` 값을 복사해 `SHARED_USER_ID`에 입력  
+> 3. 허용 이메일을 모두 소문자로 `SHARED_ALLOWED_EMAILS`에 작성  
+> 4. Vercel에 환경 변수를 저장하고 재배포하면 두 계정이 동일 데이터를 조회/수정합니다.
+
+> 🔐 **주의**: Firebase Admin 키(`FIREBASE_PRIVATE_KEY`)는 절대 프런트엔드에 노출하지 말고, Vercel Serverless 환경 변수에만 저장하세요.
+
 ## 시작하기
 
 ### 설치
