@@ -32,10 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .select()
           .from(transactions)
           .where(
-            and(
-              gte(transactions.date, start),
-              lte(transactions.date, end)
-            )
+            and(gte(transactions.date, start), lte(transactions.date, end))
           )
           .orderBy(desc(transactions.date));
       } else if (
@@ -67,6 +64,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "POST") {
       const data = req.body;
 
+      // Sanitize assetId: convert empty string to null for UUID compatibility
+      const sanitizedAssetId = data.assetId || null;
+
       // 트랜잭션 추가
       const [newTx] = await db
         .insert(transactions)
@@ -75,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           date: data.date,
           type: data.type,
           amount: String(data.amount),
-          assetId: data.assetId,
+          assetId: sanitizedAssetId,
           toAssetId: data.toAssetId,
           categoryId: data.categoryId,
           cardId: data.cardId,
@@ -84,37 +84,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .returning();
 
       // 자산 잔액 업데이트 (공유 데이터셋 - userId 필터링 없음)
-      const [asset] = await db
-        .select()
-        .from(assets)
-        .where(eq(assets.id, data.assetId));
-      if (asset) {
-        let newBalance = Number(asset.balance);
-        if (data.type === "INCOME") {
-          newBalance += Number(data.amount);
-        } else if (data.type === "EXPENSE") {
-          newBalance -= Number(data.amount);
-        } else if (data.type === "TRANSFER") {
-          newBalance -= Number(data.amount);
-        }
-        await db
-          .update(assets)
-          .set({ balance: String(newBalance), updatedAt: new Date() })
-          .where(eq(assets.id, data.assetId));
-
-        // 이체일 경우 대상 자산도 업데이트 (공유 데이터셋 - userId 필터링 없음)
-        if (data.type === "TRANSFER" && data.toAssetId) {
-          const [toAsset] = await db
-            .select()
-            .from(assets)
-            .where(eq(assets.id, data.toAssetId));
-          if (toAsset) {
-            const toNewBalance = Number(toAsset.balance) + Number(data.amount);
-            await db
-              .update(assets)
-              .set({ balance: String(toNewBalance), updatedAt: new Date() })
-              .where(eq(assets.id, data.toAssetId));
+      // assetId가 있을 때만 업데이트 수행 (신용카드 지출 등은 assetId가 없을 수 있음)
+      if (sanitizedAssetId) {
+        const [asset] = await db
+          .select()
+          .from(assets)
+          .where(eq(assets.id, sanitizedAssetId));
+        if (asset) {
+          let newBalance = Number(asset.balance);
+          if (data.type === "INCOME") {
+            newBalance += Number(data.amount);
+          } else if (data.type === "EXPENSE") {
+            newBalance -= Number(data.amount);
+          } else if (data.type === "TRANSFER") {
+            newBalance -= Number(data.amount);
           }
+          await db
+            .update(assets)
+            .set({ balance: String(newBalance), updatedAt: new Date() })
+            .where(eq(assets.id, sanitizedAssetId));
+        }
+      }
+
+      // 이체일 경우 대상 자산도 업데이트 (공유 데이터셋 - userId 필터링 없음)
+      if (data.type === "TRANSFER" && data.toAssetId) {
+        const [toAsset] = await db
+          .select()
+          .from(assets)
+          .where(eq(assets.id, data.toAssetId));
+        if (toAsset) {
+          const toNewBalance = Number(toAsset.balance) + Number(data.amount);
+          await db
+            .update(assets)
+            .set({ balance: String(toNewBalance), updatedAt: new Date() })
+            .where(eq(assets.id, data.toAssetId));
         }
       }
 
@@ -163,43 +166,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // 자산 잔액 복구
-      const [asset] = await db
-        .select()
-        .from(assets)
-        .where(eq(assets.id, tx.assetId));
-      if (asset) {
-        let newBalance = Number(asset.balance);
-        if (tx.type === "INCOME") {
-          newBalance -= Number(tx.amount);
-        } else if (tx.type === "EXPENSE") {
-          newBalance += Number(tx.amount);
-        } else if (tx.type === "TRANSFER") {
-          newBalance += Number(tx.amount);
-        }
-        await db
-          .update(assets)
-          .set({ balance: String(newBalance), updatedAt: new Date() })
+      // 자산 잔액 복구
+      // assetId가 있는 경우에만 복구 (Card 사용 등은 null일 수 있음)
+      if (tx.assetId) {
+        const [asset] = await db
+          .select()
+          .from(assets)
           .where(eq(assets.id, tx.assetId));
-
-        // 이체였을 경우 대상 자산도 복구
-        if (tx.type === "TRANSFER" && tx.toAssetId) {
-          const [toAsset] = await db
-            .select()
-            .from(assets)
-            .where(eq(assets.id, tx.toAssetId));
-          if (toAsset) {
-            const toNewBalance = Number(toAsset.balance) - Number(tx.amount);
-            await db
-              .update(assets)
-              .set({ balance: String(toNewBalance), updatedAt: new Date() })
-              .where(eq(assets.id, tx.toAssetId));
+        if (asset) {
+          let newBalance = Number(asset.balance);
+          if (tx.type === "INCOME") {
+            newBalance -= Number(tx.amount);
+          } else if (tx.type === "EXPENSE") {
+            newBalance += Number(tx.amount);
+          } else if (tx.type === "TRANSFER") {
+            newBalance += Number(tx.amount);
           }
+          await db
+            .update(assets)
+            .set({ balance: String(newBalance), updatedAt: new Date() })
+            .where(eq(assets.id, tx.assetId));
         }
       }
 
-      await db
-        .delete(transactions)
-        .where(eq(transactions.id, id));
+      // 이체였을 경우 대상 자산도 복구 (Source Asset 존재 여부와 무관하게 처리)
+      if (tx.type === "TRANSFER" && tx.toAssetId) {
+        const [toAsset] = await db
+          .select()
+          .from(assets)
+          .where(eq(assets.id, tx.toAssetId));
+        if (toAsset) {
+          const toNewBalance = Number(toAsset.balance) - Number(tx.amount);
+          await db
+            .update(assets)
+            .set({ balance: String(toNewBalance), updatedAt: new Date() })
+            .where(eq(assets.id, tx.toAssetId));
+        }
+      }
+
+      await db.delete(transactions).where(eq(transactions.id, id));
       return res.status(200).json({ success: true });
     }
 
