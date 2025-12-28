@@ -156,7 +156,7 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">거래 내역</h1>
+        <h1 className="text-xl font-bold">거래 내역</h1>
         <PeriodNavigator
           label={periodRange.label}
           onPrevious={handlePrevious}

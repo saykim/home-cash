@@ -70,12 +70,12 @@ export default function HomePage() {
     .sort((a, b) => a.daysUntil - b.daysUntil);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Header with Date */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">대시보드</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl font-bold tracking-tight">대시보드</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
             {format(new Date(), "yyyy년 M월 d일 EEEE", { locale: ko })}
           </p>
         </div>
@@ -86,17 +86,17 @@ export default function HomePage() {
         {/* Total Balance - Hero Card (5 columns) */}
         <div className="col-span-5">
           <Card className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 text-white border-0 shadow-xl h-full">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-slate-300 uppercase tracking-wider">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-medium text-slate-300 uppercase tracking-wider">
                   총 자산
                 </span>
-                <Wallet className="h-5 w-5 text-slate-400" />
+                <Wallet className="h-4 w-4 text-slate-400" />
               </div>
-              <div className="text-4xl font-bold tabular-nums tracking-tight mb-1">
+              <div className="text-3xl font-bold tabular-nums tracking-tight mb-0.5">
                 {formatCurrency(totalBalance)}
               </div>
-              <div className="text-sm text-slate-400">전체 자산 현황</div>
+              <div className="text-xs text-slate-400">전체 자산 현황</div>
             </CardContent>
           </Card>
         </div>
@@ -105,14 +105,14 @@ export default function HomePage() {
         <div className="col-span-7 grid grid-cols-3 gap-4">
           {/* Monthly Income */}
           <Card className="border border-green-200 dark:border-green-900/50 bg-green-50/50 dark:bg-green-950/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-green-700 dark:text-green-400 uppercase tracking-wider">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[10px] font-medium text-green-700 dark:text-green-400 uppercase tracking-wider">
                   월 수입
                 </span>
-                <ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <ArrowUpRight className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
               </div>
-              <div className="text-2xl font-bold text-green-700 dark:text-green-400 tabular-nums">
+              <div className="text-xl font-bold text-green-700 dark:text-green-400 tabular-nums">
                 {formatCurrency(monthIncome)}
               </div>
             </CardContent>
@@ -120,14 +120,14 @@ export default function HomePage() {
 
           {/* Monthly Expense */}
           <Card className="border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-red-700 dark:text-red-400 uppercase tracking-wider">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[10px] font-medium text-red-700 dark:text-red-400 uppercase tracking-wider">
                   월 지출
                 </span>
-                <ArrowDownRight className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <ArrowDownRight className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
               </div>
-              <div className="text-2xl font-bold text-red-700 dark:text-red-400 tabular-nums">
+              <div className="text-xl font-bold text-red-700 dark:text-red-400 tabular-nums">
                 {formatCurrency(monthExpense)}
               </div>
             </CardContent>
@@ -142,11 +142,11 @@ export default function HomePage() {
                 : "border-orange-200 dark:border-orange-900/50 bg-orange-50/50 dark:bg-orange-950/20"
             )}
           >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-1">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-0.5">
                 <span
                   className={cn(
-                    "text-xs font-medium uppercase tracking-wider",
+                    "text-[10px] font-medium uppercase tracking-wider",
                     netIncome >= 0
                       ? "text-blue-700 dark:text-blue-400"
                       : "text-orange-700 dark:text-orange-400"
@@ -156,7 +156,7 @@ export default function HomePage() {
                 </span>
                 <TrendingUp
                   className={cn(
-                    "h-4 w-4",
+                    "h-3.5 w-3.5",
                     netIncome >= 0
                       ? "text-blue-600 dark:text-blue-400"
                       : "text-orange-600 dark:text-orange-400"
@@ -165,7 +165,7 @@ export default function HomePage() {
               </div>
               <div
                 className={cn(
-                  "text-2xl font-bold tabular-nums",
+                  "text-xl font-bold tabular-nums",
                   netIncome >= 0
                     ? "text-blue-700 dark:text-blue-400"
                     : "text-orange-700 dark:text-orange-400"
@@ -190,15 +190,15 @@ export default function HomePage() {
       />
 
       {/* Main Dashboard Grid - 3 Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
         {/* Left Column - Assets (4 columns) */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-4">
 
           {/* Assets Table */}
           <Card className="border">
-            <CardHeader className="pb-3 border-b">
+            <CardHeader className="pb-2 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">
+                <CardTitle className="text-sm font-semibold">
                   자산 현황
                 </CardTitle>
                 <AssetManagerDialog
@@ -223,13 +223,13 @@ export default function HomePage() {
                   <table className="w-full">
                     <thead className="sticky top-0 bg-background z-10">
                       <tr className="border-b bg-muted/30">
-                        <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">
+                        <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
                           자산명
                         </th>
-                        <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">
+                        <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
                           유형
                         </th>
-                        <th className="text-right py-4 px-5 text-sm font-medium text-muted-foreground">
+                        <th className="text-right py-2.5 px-3 text-xs font-medium text-muted-foreground">
                           잔액
                         </th>
                       </tr>
@@ -240,12 +240,12 @@ export default function HomePage() {
                           key={asset.id}
                           className="group hover:bg-muted/30 hover:shadow-sm transition-all cursor-pointer relative"
                         >
-                          <td className="relative py-4 px-5">
+                          <td className="relative py-2.5 px-3">
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover:opacity-100 transition-opacity rounded-r" />
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                               <div
                                 className={cn(
-                                  "p-2 rounded-lg",
+                                  "p-1.5 rounded-lg",
                                   asset.type === "BANK"
                                     ? "bg-blue-100 dark:bg-blue-900/30"
                                     : "bg-amber-100 dark:bg-amber-900/30"
@@ -253,25 +253,25 @@ export default function HomePage() {
                               >
                                 <Wallet
                                   className={cn(
-                                    "h-4 w-4",
+                                    "h-3.5 w-3.5",
                                     asset.type === "BANK"
                                       ? "text-blue-600 dark:text-blue-400"
                                       : "text-amber-600 dark:text-amber-400"
                                   )}
                                 />
                               </div>
-                              <span className="font-medium text-base">
+                              <span className="font-medium text-sm">
                                 {asset.name}
                               </span>
                             </div>
                           </td>
-                          <td className="py-4 px-5">
-                            <span className="text-sm text-muted-foreground">
+                          <td className="py-2.5 px-3">
+                            <span className="text-xs text-muted-foreground">
                               {asset.type === "BANK" ? "계좌" : "현금"}
                             </span>
                           </td>
-                          <td className="py-4 px-5 text-right">
-                            <span className="font-bold text-base tabular-nums">
+                          <td className="py-2.5 px-3 text-right">
+                            <span className="font-bold text-sm tabular-nums">
                               {formatCurrency(asset.balance)}
                             </span>
                           </td>
@@ -286,13 +286,13 @@ export default function HomePage() {
         </div>
 
         {/* Middle Column - Recent Transactions (4 columns) */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-4">
 
           {/* Recent Transactions Table */}
           <Card className="border">
-            <CardHeader className="pb-3 border-b">
+            <CardHeader className="pb-2 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">
+                <CardTitle className="text-sm font-semibold">
                   최근 거래
                 </CardTitle>
               </div>
@@ -307,16 +307,16 @@ export default function HomePage() {
                   <table className="w-full">
                     <thead className="sticky top-0 bg-background z-10">
                       <tr className="border-b bg-muted/30">
-                        <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">
+                        <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
                           날짜
                         </th>
-                        <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">
+                        <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
                           내용
                         </th>
-                        <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">
+                        <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
                           구분
                         </th>
-                        <th className="text-right py-4 px-5 text-sm font-medium text-muted-foreground">
+                        <th className="text-right py-2.5 px-3 text-xs font-medium text-muted-foreground">
                           금액
                         </th>
                       </tr>
@@ -340,21 +340,21 @@ export default function HomePage() {
                               }
                             }}
                           >
-                            <td className="relative py-4 px-5">
+                            <td className="relative py-2.5 px-3">
                               <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover:opacity-100 transition-opacity rounded-r" />
-                              <span className="text-sm text-muted-foreground tabular-nums">
+                              <span className="text-xs text-muted-foreground tabular-nums">
                                 {format(new Date(tx.date), "MM/dd")}
                               </span>
                             </td>
-                            <td className="py-4 px-5">
-                              <span className="font-medium text-base">
+                            <td className="py-2.5 px-3">
+                              <span className="font-medium text-sm">
                                 {tx.memo || category?.name || "거래"}
                               </span>
                             </td>
-                            <td className="py-4 px-5">
+                            <td className="py-2.5 px-3">
                               <span
                                 className={cn(
-                                  "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                                  "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium",
                                   tx.type === "INCOME" &&
                                     "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
                                   tx.type === "EXPENSE" &&
@@ -370,10 +370,10 @@ export default function HomePage() {
                                   : "이체"}
                               </span>
                             </td>
-                            <td className="py-4 px-5 text-right">
+                            <td className="py-2.5 px-3 text-right">
                               <span
                                 className={cn(
-                                  "font-bold text-base tabular-nums",
+                                  "font-bold text-sm tabular-nums",
                                   tx.type === "INCOME"
                                     ? "text-green-600 dark:text-green-400"
                                     : "text-red-600 dark:text-red-400"
@@ -395,30 +395,30 @@ export default function HomePage() {
         </div>
 
         {/* Right Column - Upcoming Payments (4 columns) */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-4">
 
           {/* Upcoming Payments */}
           <Card className="border">
-            <CardHeader className="pb-3 border-b">
+            <CardHeader className="pb-2 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Bell className="h-4 w-4" />
+                <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                  <Bell className="h-3.5 w-3.5" />
                   결제 예정
                 </CardTitle>
               </div>
-              </CardHeader>
+            </CardHeader>
             <CardContent className="p-0">
               {upcomingPayments.length === 0 ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">
+                <div className="p-6 text-center text-xs text-muted-foreground">
                   예정된 결제가 없습니다
                 </div>
               ) : (
-                <div className="max-h-[500px] overflow-y-auto p-3 space-y-2">
+                <div className="max-h-[500px] overflow-y-auto p-2.5 space-y-1.5">
                   {upcomingPayments.map((payment) => (
                     <div
                       key={payment.cardId}
                       className={cn(
-                        "p-3 rounded-lg border transition-all hover:shadow-md",
+                        "p-2.5 rounded-lg border transition-all hover:shadow-md",
                         payment.daysUntil === 0 &&
                           "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50",
                         payment.daysUntil > 0 &&
@@ -428,12 +428,12 @@ export default function HomePage() {
                           "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/50"
                       )}
                     >
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start justify-between mb-1.5">
                         <div className="flex-1">
-                          <p className="font-semibold text-sm leading-tight">
+                          <p className="font-semibold text-xs leading-tight">
                             {payment.cardName}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
                             결제일:{" "}
                             {format(
                               parseISO(payment.nextBillingDate),
@@ -444,7 +444,7 @@ export default function HomePage() {
                         </div>
                         <div
                           className={cn(
-                            "px-2 py-1 rounded text-xs font-bold",
+                            "px-1.5 py-0.5 rounded text-[10px] font-bold",
                             payment.daysUntil === 0 && "bg-red-600 text-white",
                             payment.daysUntil > 0 &&
                               payment.daysUntil <= 3 &&
@@ -458,8 +458,8 @@ export default function HomePage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-muted-foreground">결제 금액</p>
-                        <p className="font-bold text-lg tabular-nums">
+                        <p className="text-[10px] text-muted-foreground">결제 금액</p>
+                        <p className="font-bold text-base tabular-nums">
                           {formatCurrency(payment.billingAmount)}
                         </p>
                       </div>
@@ -467,8 +467,8 @@ export default function HomePage() {
                   ))}
                 </div>
               )}
-              </CardContent>
-            </Card>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

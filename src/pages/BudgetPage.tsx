@@ -105,7 +105,7 @@ export default function BudgetPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">예산 관리</h1>
+        <h1 className="text-xl font-bold">예산 관리</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevMonth}>
             <ChevronLeft className="h-4 w-4" />

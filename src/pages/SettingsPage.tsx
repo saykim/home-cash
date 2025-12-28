@@ -190,7 +190,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">설정</h1>
@@ -202,7 +202,7 @@ export default function SettingsPage() {
       {/* Main Grid Layout */}
       <div className="grid grid-cols-12 gap-6">
         {/* Left Column - Assets & Categories (7 columns) */}
-        <div className="col-span-7 space-y-6">
+        <div className="col-span-7 space-y-4">
           {/* Assets Management */}
           <Card className="border">
             <CardHeader className="pb-3 border-b">
@@ -528,7 +528,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Right Column - Recurring & Events (5 columns) */}
-        <div className="col-span-5 space-y-6">
+        <div className="col-span-5 space-y-4">
           {/* Recurring Transactions Management */}
           <Card className="border">
             <CardHeader className="pb-3 border-b">

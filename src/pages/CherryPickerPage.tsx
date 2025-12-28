@@ -24,7 +24,7 @@ export default function CherryPickerPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">체리피커 대시보드</h1>
+        <h1 className="text-xl font-bold">체리피커 대시보드</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevMonth}>
             <ChevronLeft className="h-4 w-4" />
@@ -46,7 +46,7 @@ export default function CherryPickerPage() {
             <CreditCardIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalBillingAmount)}</div>
+            <div className="text-xl font-bold">{formatCurrency(totalBillingAmount)}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {totalTransactions}건의 거래
             </p>
@@ -59,7 +59,7 @@ export default function CherryPickerPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{performances.length}장</div>
+            <div className="text-xl font-bold">{performances.length}장</div>
             <p className="text-xs text-muted-foreground mt-1">
               {performances.filter((p) => p.achievedTiers.length > 0).length}장 혜택 달성
             </p>
@@ -89,7 +89,7 @@ export default function CherryPickerPage() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{perf.cardName}</CardTitle>
                     <div className="text-right">
-                      <p className="text-2xl font-bold">{formatCurrency(perf.currentMonthSpend)}</p>
+                      <p className="text-xl font-bold">{formatCurrency(perf.currentMonthSpend)}</p>
                       <p className="text-xs text-muted-foreground">{perf.currentMonthTransactions}건</p>
                     </div>
                   </div>

@@ -102,24 +102,24 @@ export function QuickActionsBar({
   return (
     <>
       {/* Desktop: Grid layout */}
-      <div className="hidden lg:grid lg:grid-cols-8 gap-3">
+      <div className="hidden lg:grid lg:grid-cols-8 gap-2">
         {mainActions.map((action) => (
           <button
             key={action.label}
             onClick={action.onClick}
-            className={`flex flex-col items-center justify-center gap-2 px-4 py-4 rounded-lg font-medium transition-all shadow-sm hover:shadow-md hover:scale-105 ${action.bgColor} ${action.textColor}`}
+            className={`flex flex-col items-center justify-center gap-1.5 px-3 py-3 rounded-lg font-medium transition-all shadow-sm hover:shadow-md hover:scale-105 ${action.bgColor} ${action.textColor}`}
           >
-            <action.icon className="h-6 w-6" />
-            <span className="text-sm">{action.label}</span>
+            <action.icon className="h-5 w-5" />
+            <span className="text-xs">{action.label}</span>
           </button>
         ))}
 
         {/* More Button with Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex flex-col items-center justify-center gap-2 px-4 py-4 rounded-lg font-medium transition-all shadow-sm hover:shadow-md hover:scale-105 bg-muted hover:bg-muted/80 dark:bg-muted dark:hover:bg-muted/80 text-foreground">
-              <MoreHorizontal className="h-6 w-6" />
-              <span className="text-sm">더보기</span>
+            <button className="flex flex-col items-center justify-center gap-1.5 px-3 py-3 rounded-lg font-medium transition-all shadow-sm hover:shadow-md hover:scale-105 bg-muted hover:bg-muted/80 dark:bg-muted dark:hover:bg-muted/80 text-foreground">
+              <MoreHorizontal className="h-5 w-5" />
+              <span className="text-xs">더보기</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -140,24 +140,24 @@ export function QuickActionsBar({
       </div>
 
       {/* Mobile/Tablet: Horizontal scrollable layout */}
-      <div className="lg:hidden flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="lg:hidden flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {mainActions.map((action) => (
           <button
             key={action.label}
             onClick={action.onClick}
-            className={`flex flex-col items-center justify-center gap-2 px-6 py-4 rounded-lg font-medium transition-all shadow-sm hover:shadow-md flex-shrink-0 ${action.bgColor} ${action.textColor}`}
+            className={`flex flex-col items-center justify-center gap-1.5 px-4 py-3 rounded-lg font-medium transition-all shadow-sm hover:shadow-md flex-shrink-0 ${action.bgColor} ${action.textColor}`}
           >
-            <action.icon className="h-6 w-6" />
-            <span className="text-sm whitespace-nowrap">{action.label}</span>
+            <action.icon className="h-5 w-5" />
+            <span className="text-xs whitespace-nowrap">{action.label}</span>
           </button>
         ))}
 
         {/* More Button with Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex flex-col items-center justify-center gap-2 px-6 py-4 rounded-lg font-medium transition-all shadow-sm hover:shadow-md flex-shrink-0 bg-muted hover:bg-muted/80 dark:bg-muted dark:hover:bg-muted/80 text-foreground">
-              <MoreHorizontal className="h-6 w-6" />
-              <span className="text-sm whitespace-nowrap">더보기</span>
+            <button className="flex flex-col items-center justify-center gap-1.5 px-4 py-3 rounded-lg font-medium transition-all shadow-sm hover:shadow-md flex-shrink-0 bg-muted hover:bg-muted/80 dark:bg-muted dark:hover:bg-muted/80 text-foreground">
+              <MoreHorizontal className="h-5 w-5" />
+              <span className="text-xs whitespace-nowrap">더보기</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
