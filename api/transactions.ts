@@ -5,6 +5,24 @@ import { createDb } from "./_lib/vercelDb.js";
 import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp.js";
 import { verifyAuth } from "./_lib/vercelAuth.js";
 
+/**
+ * 안전하게 문자열이 비어있지 않은지 확인하는 헬퍼 함수
+ * undefined, null, 빈 문자열을 모두 false로 처리
+ */
+function isEmptyString(value: any): boolean {
+  return !value || (typeof value === "string" && value.trim() === "");
+}
+
+/**
+ * 안전하게 문자열을 정리하고 null로 변환하는 헬퍼 함수
+ * undefined, null, 빈 문자열을 null로 변환
+ */
+function sanitizeString(value: any): string | null {
+  if (!value || typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, req);
 
@@ -64,21 +82,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "POST") {
       const data = req.body;
 
+      // 디버깅을 위한 요청 데이터 로깅
+      console.log("[transactions POST] Request data:", {
+        date: data.date,
+        type: data.type,
+        amount: data.amount,
+        assetId: data.assetId,
+        cardId: data.cardId,
+        categoryId: data.categoryId,
+        toAssetId: data.toAssetId,
+      });
+
       // 필수 필드 검증
       if (!data.date || !data.type || !data.amount) {
         return res.status(400).json({ error: "날짜, 유형, 금액은 필수입니다." });
       }
 
       // categoryId 검증 (스키마에서 notNull이므로 항상 필수)
-      if (!data.categoryId || (typeof data.categoryId === "string" && data.categoryId.trim() === "")) {
+      if (isEmptyString(data.categoryId)) {
         return res.status(400).json({ error: "카테고리는 필수입니다." });
       }
 
       // Sanitize assetId: convert empty string to null for UUID compatibility
-      const sanitizedAssetId = data.assetId && data.assetId.trim() !== "" ? data.assetId : null;
+      const sanitizedAssetId = sanitizeString(data.assetId);
 
       // 카드 지출인 경우 assetId가 없어도 됨
-      const isCardExpense = data.type === "EXPENSE" && data.cardId && data.cardId !== "NONE" && data.cardId.trim() !== "";
+      const sanitizedCardId = sanitizeString(data.cardId);
+      const isCardExpense = data.type === "EXPENSE" && sanitizedCardId && sanitizedCardId !== "NONE";
+      
       if (!isCardExpense && !sanitizedAssetId) {
         return res.status(400).json({ error: "자산을 선택해주세요." });
       }
@@ -92,10 +123,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           type: data.type,
           amount: String(data.amount),
           assetId: sanitizedAssetId,
-          toAssetId: data.toAssetId && data.toAssetId.trim() !== "" ? data.toAssetId : null,
+          toAssetId: sanitizeString(data.toAssetId),
           categoryId: data.categoryId, // 항상 필수 (스키마에서 notNull)
-          cardId: data.cardId && data.cardId !== "NONE" && data.cardId.trim() !== "" ? data.cardId : null,
-          memo: data.memo || null,
+          cardId: sanitizedCardId && sanitizedCardId !== "NONE" ? sanitizedCardId : null,
+          memo: sanitizeString(data.memo),
         })
         .returning();
 
@@ -226,6 +257,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(405).json({ error: "Method not allowed" });
   } catch (error) {
+    // 상세한 에러 로깅
+    console.error("[transactions error]", {
+      requestId,
+      method: req.method,
+      url: req.url,
+      body: req.body,
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      } : error,
+    });
     return sendError(res, requestId, error);
   }
 }

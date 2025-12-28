@@ -124,14 +124,22 @@ export function TransactionForm({
     }
 
     // 카테고리 검증 (스키마에서 notNull이므로 항상 필수)
-    if (!categoryId || categoryId.trim() === "") {
-      // 이체일 때는 기본 카테고리 사용 (categories 배열이 비어있지 않은 경우)
-      if (type === "TRANSFER" && categories.length > 0) {
-        // 이체일 때는 첫 번째 카테고리를 사용
+    let finalCategoryId = categoryId && categoryId.trim() !== "" ? categoryId : "";
+    
+    // 이체일 때 categoryId가 없으면 첫 번째 카테고리 사용
+    if (type === "TRANSFER" && (!finalCategoryId || finalCategoryId.trim() === "")) {
+      if (categories.length > 0 && categories[0]?.id) {
+        finalCategoryId = categories[0].id;
       } else {
         alert("카테고리를 선택해주세요.");
         return;
       }
+    }
+    
+    // 이체가 아닌 경우 카테고리 필수
+    if (type !== "TRANSFER" && (!finalCategoryId || finalCategoryId.trim() === "")) {
+      alert("카테고리를 선택해주세요.");
+      return;
     }
 
     if (type === "TRANSFER" && !toAssetId) {
@@ -139,35 +147,24 @@ export function TransactionForm({
       return;
     }
 
-    // 이체일 때 categoryId가 없으면 첫 번째 카테고리 사용
-    const finalCategoryId = type === "TRANSFER" && (!categoryId || categoryId.trim() === "")
-      ? (categories[0]?.id || "")
-      : categoryId;
+    // 빈 문자열 대신 undefined 전송 (서버에서 null로 변환됨)
+    const transactionData = {
+      date,
+      type,
+      amount: parseFormattedAmount(amount),
+      assetId: isCardExpense ? undefined : (assetId && assetId.trim() !== "" ? assetId : undefined),
+      toAssetId: type === "TRANSFER" && toAssetId && toAssetId.trim() !== "" ? toAssetId : undefined,
+      categoryId: finalCategoryId,
+      cardId: cardId && cardId !== "NONE" && cardId.trim() !== "" ? cardId : undefined,
+      memo: memo && memo.trim() !== "" ? memo : undefined,
+    };
 
     if (isEditMode && editTransaction) {
       // Edit mode - update existing transaction
-      await updateTransaction(editTransaction.id, {
-        date,
-        type,
-        amount: parseFormattedAmount(amount),
-        assetId: isCardExpense ? "" : assetId, // 카드 사용 시 자산 ID 없음
-        toAssetId: type === "TRANSFER" ? toAssetId : undefined,
-        categoryId: finalCategoryId,
-        cardId: cardId && cardId !== "NONE" && cardId.trim() !== "" ? cardId : undefined,
-        memo,
-      });
+      await updateTransaction(editTransaction.id, transactionData);
     } else {
       // Add mode - create new transaction
-      await addTransaction({
-        date,
-        type,
-        amount: parseFormattedAmount(amount),
-        assetId: isCardExpense ? "" : assetId, // 카드 사용 시 자산 ID 없음
-        toAssetId: type === "TRANSFER" ? toAssetId : undefined,
-        categoryId: finalCategoryId,
-        cardId: cardId && cardId !== "NONE" && cardId.trim() !== "" ? cardId : undefined,
-        memo,
-      });
+      await addTransaction(transactionData);
     }
 
     handleClose();
