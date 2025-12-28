@@ -30,11 +30,11 @@ export function CategoryGroup({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
       {/* 카테고리 헤더 */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-5 py-4 bg-muted/50 hover:bg-muted transition-colors flex items-center justify-between"
+        className="w-full px-5 py-4 bg-muted/50 hover:bg-muted transition-all duration-200 flex items-center justify-between group/header"
       >
         <div className="flex items-center gap-3">
           {isExpanded ? (
@@ -62,9 +62,18 @@ export function CategoryGroup({
           {transactions.map((tx) => (
             <div
               key={tx.id}
-              className="px-5 py-4 flex items-center justify-between group hover:bg-muted/30 transition-colors"
+              className="relative px-5 py-4 flex items-center justify-between group hover:bg-muted/40 hover:shadow-md transition-all duration-200 cursor-pointer"
+              style={{
+                ['--category-color' as any]: categoryColor,
+              }}
             >
-              <div className="flex-1">
+              {/* 왼쪽 바 라이트 효과 */}
+              <div 
+                className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-[var(--category-color)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ backgroundColor: categoryColor }}
+              />
+              
+              <div className="flex-1 relative z-10">
                 <div className="flex items-center gap-2">
                   <p className="font-medium text-base">{tx.memo || categoryName}</p>
                   <span
@@ -90,13 +99,13 @@ export function CategoryGroup({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 relative z-10">
                 <p
                   className={cn(
-                    'font-bold text-lg tabular-nums',
+                    'font-bold text-lg tabular-nums transition-all duration-200 group-hover:scale-110',
                     tx.type === 'INCOME'
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-red-600 dark:text-red-400'
+                      ? 'text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300'
+                      : 'text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300'
                   )}
                 >
                   {tx.type === 'INCOME' ? '+' : '-'}
