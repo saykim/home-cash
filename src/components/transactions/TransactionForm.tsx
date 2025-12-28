@@ -25,6 +25,7 @@ import type { TransactionType, Transaction, Asset, Category, CreditCard } from "
 
 interface TransactionFormProps {
   children?: React.ReactNode;
+  hideTrigger?: boolean;
   defaultType?: TransactionType;
   defaultDate?: Date | null;
   editTransaction?: Transaction | null;
@@ -41,6 +42,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({
   children,
+  hideTrigger = false,
   defaultType = "EXPENSE",
   defaultDate = null,
   editTransaction = null,
@@ -183,13 +185,15 @@ export function TransactionForm({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg md:bottom-4 z-40">
-            <Plus className="h-6 w-6" />
-          </Button>
-        )}
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          {children || (
+            <Button className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg md:bottom-4 z-40">
+              <Plus className="h-6 w-6" />
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "거래 수정" : "거래 추가"}</DialogTitle>

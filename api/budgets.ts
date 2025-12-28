@@ -3,9 +3,10 @@ import { budgets } from "./db-schema.js";
 import { eq, and } from "drizzle-orm";
 import { createDb } from "./_lib/vercelDb.js";
 import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp.js";
+import { verifyAuth } from "./_lib/vercelAuth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res);
+  setCorsHeaders(res, req);
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
@@ -15,6 +16,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = createDb();
+
+    // Verify authentication and get user ID
+    const userId = await verifyAuth(req, db);
+
     // GET: 예산 조회 (월별 필터 지원)
     if (req.method === "GET") {
       const { month } = req.query;
@@ -22,10 +27,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const result = await db
           .select()
           .from(budgets)
-          .where(eq(budgets.month, month));
+          .where(and(eq(budgets.userId, userId), eq(budgets.month, month)));
         return res.status(200).json(result);
       }
-      const result = await db.select().from(budgets);
+      const result = await db
+        .select()
+        .from(budgets)
+        .where(eq(budgets.userId, userId));
       return res.status(200).json(result);
     }
 
@@ -39,6 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .from(budgets)
         .where(
           and(
+            eq(budgets.userId, userId),
             eq(budgets.categoryId, data.categoryId),
             eq(budgets.month, data.month)
           )
@@ -58,6 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const result = await db
         .insert(budgets)
         .values({
+          userId, // Auto-inject userId
           categoryId: data.categoryId,
           amount: String(data.amount),
           month: data.month,
@@ -80,8 +90,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           amount: data.amount !== undefined ? String(data.amount) : undefined,
           updatedAt: new Date(),
         })
-        .where(eq(budgets.id, id))
+        .where(and(eq(budgets.id, id), eq(budgets.userId, userId)))
         .returning();
+
+      if (!result || result.length === 0) {
+        return res.status(404).json({ error: "Budget not found" });
+      }
+
       return res.status(200).json(result[0]);
     }
 
@@ -91,7 +106,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!id || typeof id !== "string") {
         return res.status(400).json({ error: "Missing id" });
       }
-      await db.delete(budgets).where(eq(budgets.id, id));
+      const result = await db
+        .delete(budgets)
+        .where(and(eq(budgets.id, id), eq(budgets.userId, userId)))
+        .returning();
+
+      if (!result || result.length === 0) {
+        return res.status(404).json({ error: "Budget not found" });
+      }
+
       return res.status(200).json({ success: true });
     }
 

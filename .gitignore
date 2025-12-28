@@ -33,3 +33,5 @@ public/sw.js
 public/workbox-*.js
 .vercel
 .env*.local
+*.json
+oauth-test-project-*.json

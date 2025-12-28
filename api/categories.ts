@@ -1,64 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { categories } from "./db-schema.js";
-import { eq, inArray } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { createDb } from "./_lib/vercelDb.js";
 import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp.js";
-
-const DEFAULT_CATEGORIES: Array<{
-  name: string;
-  kind: "INCOME" | "EXPENSE";
-  color: string;
-}> = [
-  // 지출 기본
-  { name: "식비", kind: "EXPENSE", color: "#ef4444" },
-  { name: "교통비", kind: "EXPENSE", color: "#f97316" },
-  { name: "학원비", kind: "EXPENSE", color: "#8b5cf6" },
-  { name: "생활비", kind: "EXPENSE", color: "#3b82f6" },
-  { name: "관리비", kind: "EXPENSE", color: "#22c55e" },
-  { name: "공과금", kind: "EXPENSE", color: "#eab308" },
-  // 수입 기본
-  { name: "급여", kind: "INCOME", color: "#22c55e" },
-  { name: "소득", kind: "INCOME", color: "#3b82f6" },
-  { name: "기타소득", kind: "INCOME", color: "#8b5cf6" },
-];
-
-// 함수 인스턴스당 한 번만 seeding 실행 (warm instance에서 재실행 방지)
-let seedingCompleted = false;
-
-async function ensureDefaultCategories(db: any) {
-  // 이미 완료된 경우 스킵 (warm instance 최적화)
-  if (seedingCompleted) return;
-
-  const wantedNames = Array.from(new Set(DEFAULT_CATEGORIES.map((c) => c.name)));
-  const existing = await db
-    .select({ name: categories.name, kind: categories.kind })
-    .from(categories)
-    .where(inArray(categories.name, wantedNames));
-
-  const existingKeys = new Set(
-    existing.map((c: any) => `${String(c.kind)}:${String(c.name)}`)
-  );
-
-  const toInsert = DEFAULT_CATEGORIES.filter(
-    (c) => !existingKeys.has(`${c.kind}:${c.name}`)
-  );
-
-  if (toInsert.length > 0) {
-    await db.insert(categories).values(
-      toInsert.map((c) => ({
-        name: c.name,
-        kind: c.kind,
-        color: c.color,
-      }))
-    );
-  }
-
-  // Seeding 완료 플래그 설정
-  seedingCompleted = true;
-}
+import { verifyAuth } from "./_lib/vercelAuth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res);
+  setCorsHeaders(res, req);
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
@@ -68,11 +16,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = createDb();
-    // GET: 전체 카테고리 조회
+
+    // Verify authentication and get user ID
+    const userId = await verifyAuth(req, db);
+
+    // GET: 사용자별 카테고리 조회
     if (req.method === "GET") {
-      // 기본 카테고리(지출/수입)를 사전 등록 (idempotent)
-      await ensureDefaultCategories(db);
-      const result = await db.select().from(categories);
+      const result = await db
+        .select()
+        .from(categories)
+        .where(eq(categories.userId, userId));
       return res.status(200).json(result);
     }
 
@@ -82,6 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const result = await db
         .insert(categories)
         .values({
+          userId, // Auto-inject userId
           name: data.name,
           kind: data.kind,
           icon: data.icon,
@@ -91,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(201).json(result[0]);
     }
 
-    // PUT: 카테고리 수정
+    // PUT: 카테고리 수정 (본인 데이터만)
     if (req.method === "PUT") {
       const { id } = req.query;
       const data = req.body;
@@ -101,18 +55,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const result = await db
         .update(categories)
         .set(data)
-        .where(eq(categories.id, id))
+        .where(and(eq(categories.id, id), eq(categories.userId, userId)))
         .returning();
+
+      if (!result || result.length === 0) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+
       return res.status(200).json(result[0]);
     }
 
-    // DELETE: 카테고리 삭제
+    // DELETE: 카테고리 삭제 (본인 데이터만)
     if (req.method === "DELETE") {
       const { id } = req.query;
       if (!id || typeof id !== "string") {
         return res.status(400).json({ error: "Missing id" });
       }
-      await db.delete(categories).where(eq(categories.id, id));
+      const result = await db
+        .delete(categories)
+        .where(and(eq(categories.id, id), eq(categories.userId, userId)))
+        .returning();
+
+      if (!result || result.length === 0) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+
       return res.status(200).json({ success: true });
     }
 

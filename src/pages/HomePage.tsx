@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
+import { AssetManagerDialog } from "@/components/assets/AssetManagerDialog";
 import { useAssets } from "@/hooks/useAssets";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
@@ -30,11 +31,12 @@ import {
 } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
+import type { Transaction } from "@/types";
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { allCategories, incomeCategories, expenseCategories } = useCategories();
-  const { assets, totalBalance } = useAssets();
+  const { assets, totalBalance, addAsset, updateAsset, deleteAsset } = useAssets();
   const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const { creditCards } = useCreditCards();
   const monthStr = format(new Date(), "yyyy-MM");
@@ -43,6 +45,17 @@ export default function HomePage() {
   const { recurringTransactions } = useRecurringTransactions();
 
   const recentTransactions = transactions.slice(0, 12);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+
+  const handleSelectTransaction = (tx: Transaction) => {
+    setEditingTransaction(tx);
+  };
+
+  const handleTransactionDialogToggle = (open: boolean) => {
+    if (!open) {
+      setEditingTransaction(null);
+    }
+  };
 
   const thisMonth = format(new Date(), "yyyy-MM");
   const monthTransactions = transactions.filter((t) =>
@@ -254,9 +267,16 @@ export default function HomePage() {
                 <CardTitle className="text-base font-semibold">
                   자산 현황
                 </CardTitle>
-                <button className="text-xs text-primary font-medium px-2 py-1 -mx-2 rounded hover:bg-primary/10 transition-colors">
-                  관리
-                </button>
+                <AssetManagerDialog
+                  assets={assets}
+                  addAsset={addAsset}
+                  updateAsset={updateAsset}
+                  deleteAsset={deleteAsset}
+                >
+                  <button className="text-xs text-primary font-medium px-2 py-1 -mx-2 rounded hover:bg-primary/10 transition-colors">
+                    관리
+                  </button>
+                </AssetManagerDialog>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -378,6 +398,15 @@ export default function HomePage() {
                           <tr
                             key={tx.id}
                             className="group hover:bg-muted/30 hover:shadow-sm transition-all cursor-pointer relative"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handleSelectTransaction(tx)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                handleSelectTransaction(tx);
+                              }
+                            }}
                           >
                             <td className="relative py-4 px-5">
                               <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover:opacity-100 transition-opacity rounded-r" />
@@ -641,6 +670,19 @@ export default function HomePage() {
           )}
         </div>
       </div>
+
+      <TransactionForm
+        hideTrigger
+        editTransaction={editingTransaction}
+        onOpenChange={handleTransactionDialogToggle}
+        addTransaction={addTransaction}
+        updateTransaction={updateTransaction}
+        deleteTransaction={deleteTransaction}
+        assets={assets}
+        incomeCategories={incomeCategories}
+        expenseCategories={expenseCategories}
+        creditCards={creditCards}
+      />
     </div>
   );
 }

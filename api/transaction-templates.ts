@@ -1,11 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { transactionTemplates } from "./db-schema.js";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { createDb } from "./_lib/vercelDb.js";
 import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp.js";
+import { verifyAuth } from "./_lib/vercelAuth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res);
+  setCorsHeaders(res, req);
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
@@ -15,9 +16,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = createDb();
+
+    // Verify authentication and get user ID
+    const userId = await verifyAuth(req, db);
+
     // GET: 전체 템플릿 조회
     if (req.method === "GET") {
-      const result = await db.select().from(transactionTemplates);
+      const result = await db
+        .select()
+        .from(transactionTemplates)
+        .where(eq(transactionTemplates.userId, userId));
       return res.status(200).json(result);
     }
 
@@ -27,6 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const result = await db
         .insert(transactionTemplates)
         .values({
+          userId, // Auto-inject userId
           name: data.name,
           type: data.type,
           amount: String(data.amount),
@@ -54,8 +63,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           amount: data.amount !== undefined ? String(data.amount) : undefined,
           updatedAt: new Date(),
         })
-        .where(eq(transactionTemplates.id, id))
+        .where(and(eq(transactionTemplates.id, id), eq(transactionTemplates.userId, userId)))
         .returning();
+
+      if (!result || result.length === 0) {
+        return res.status(404).json({ error: "Transaction template not found" });
+      }
+
       return res.status(200).json(result[0]);
     }
 
@@ -65,9 +79,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!id || typeof id !== "string") {
         return res.status(400).json({ error: "Missing id" });
       }
-      await db
+      const result = await db
         .delete(transactionTemplates)
-        .where(eq(transactionTemplates.id, id));
+        .where(and(eq(transactionTemplates.id, id), eq(transactionTemplates.userId, userId)))
+        .returning();
+
+      if (!result || result.length === 0) {
+        return res.status(404).json({ error: "Transaction template not found" });
+      }
+
       return res.status(200).json({ success: true });
     }
 

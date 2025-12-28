@@ -20,6 +20,7 @@ import type { PeriodMode, Transaction } from '@/types';
 export default function TransactionsPage() {
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -141,6 +142,16 @@ export default function TransactionsPage() {
 
   const hasActiveFilters = searchQuery || typeFilter !== 'all' || categoryFilter !== 'all' || assetFilter !== 'all';
 
+  const handleSelectTransaction = (tx: Transaction) => {
+    setEditingTransaction(tx);
+  };
+
+  const handleTransactionDialogToggle = (open: boolean) => {
+    if (!open) {
+      setEditingTransaction(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -256,12 +267,26 @@ export default function TransactionsPage() {
               getAssetName={getAssetName}
               onDelete={handleDelete}
               defaultExpanded={index < 3}
+              onSelect={handleSelectTransaction}
             />
           ))
         )}
       </div>
 
       <TransactionForm
+        addTransaction={addTransaction}
+        updateTransaction={updateTransaction}
+        deleteTransaction={deleteTransaction}
+        assets={assets}
+        incomeCategories={incomeCategories}
+        expenseCategories={expenseCategories}
+        creditCards={creditCards}
+      />
+
+      <TransactionForm
+        hideTrigger
+        editTransaction={editingTransaction}
+        onOpenChange={handleTransactionDialogToggle}
         addTransaction={addTransaction}
         updateTransaction={updateTransaction}
         deleteTransaction={deleteTransaction}

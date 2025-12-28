@@ -10,14 +10,26 @@ export class HttpError extends Error {
   }
 }
 
-export function setCorsHeaders(res) {
-  // 인증 쿠키/세션을 사용하지 않으므로 credentials는 열지 않습니다.
-  res.setHeader("Access-Control-Allow-Origin", "*");
+export function setCorsHeaders(res, req) {
+  // Firebase Auth를 사용하므로 특정 도메인만 허용
+  const origin = req?.headers?.origin || req?.headers?.referer;
+
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "https://home-cash.vercel.app",
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  ].filter(Boolean);
+
+  if (origin && allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS"
   );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 
