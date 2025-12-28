@@ -24,18 +24,84 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { formatCurrency } from '@/lib/formatters';
 import { format, subMonths, addMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Circular Progress Component
+function CircularProgress({ percentage, size = 200, strokeWidth = 16 }: {
+  percentage: number;
+  size?: number;
+  strokeWidth?: number;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (Math.min(percentage, 100) / 100) * circumference;
+
+  // Determine color based on percentage
+  const getColor = () => {
+    if (percentage >= 100) return '#ef4444'; // red
+    if (percentage >= 80) return '#f97316'; // orange
+    return '#22c55e'; // green
+  };
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="transform -rotate-90">
+        {/* Background circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          className="text-muted/30"
+        />
+        {/* Progress circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={getColor()}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-500"
+        />
+      </svg>
+      {/* Center text */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-3xl font-bold">{percentage.toFixed(0)}%</span>
+        <span className="text-sm text-muted-foreground">Used</span>
+      </div>
+    </div>
+  );
+}
+
+// Category Icon Component (simple emoji-based)
+function CategoryIcon({ icon, color }: { icon?: string; color?: string }) {
+  return (
+    <div
+      className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+      style={{ backgroundColor: color ? `${color}20` : '#f3f4f6' }}
+    >
+      {icon || '📦'}
+    </div>
+  );
+}
 
 export default function BudgetPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStr = format(currentMonth, 'yyyy-MM');
 
-  const { budgets, addBudget } = useBudgets(monthStr);
+  const { budgets, addBudget, updateBudget, deleteBudget } = useBudgets(monthStr);
   const { expenseCategories } = useCategories();
   const { transactions } = useTransactions(monthStr);
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<{ id: string; categoryId: string; amount: number } | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [budgetAmount, setBudgetAmount] = useState('');
 
@@ -53,10 +119,33 @@ export default function BudgetPage() {
       return;
     }
 
-    await addBudget(selectedCategoryId, Number(budgetAmount), monthStr);
+    if (editingBudget) {
+      await updateBudget(editingBudget.id, Number(budgetAmount));
+    } else {
+      await addBudget(selectedCategoryId, Number(budgetAmount), monthStr);
+    }
+
+    resetForm();
+  };
+
+  const resetForm = () => {
     setSelectedCategoryId('');
     setBudgetAmount('');
+    setEditingBudget(null);
     setDialogOpen(false);
+  };
+
+  const handleEdit = (budgetId: string, categoryId: string, amount: number) => {
+    setEditingBudget({ id: budgetId, categoryId, amount });
+    setSelectedCategoryId(categoryId);
+    setBudgetAmount(String(amount));
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async (budgetId: string) => {
+    if (confirm('이 예산을 삭제하시겠습니까?')) {
+      await deleteBudget(budgetId);
+    }
   };
 
   // Calculate spending by category
@@ -86,6 +175,7 @@ export default function BudgetPage() {
       const isWarning = percentage >= 80 && percentage < 100;
 
       return {
+        budgetId: budget.id,
         category,
         budget: budget.amount,
         spent,
@@ -102,15 +192,21 @@ export default function BudgetPage() {
   const totalRemaining = totalBudget - totalSpent;
   const totalPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
+  // Categories without budget for adding
+  const categoriesWithoutBudget = expenseCategories.filter(
+    cat => !budgets.some(b => b.categoryId === cat.id)
+  );
+
   return (
     <div className="space-y-6">
+      {/* Header with Month Navigation */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">예산 관리</h1>
+        <h1 className="text-2xl font-bold">Budget Management</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium min-w-[100px] text-center">
+          <span className="text-sm font-medium min-w-[120px] text-center px-3 py-2 bg-muted rounded-lg">
             {format(currentMonth, 'yyyy년 M월', { locale: ko })}
           </span>
           <Button variant="outline" size="icon" onClick={nextMonth}>
@@ -119,193 +215,192 @@ export default function BudgetPage() {
         </div>
       </div>
 
-      {/* Summary Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>전체 예산</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">총 예산</span>
-              <span className="font-bold text-lg">{formatCurrency(totalBudget)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">사용 금액</span>
-              <span className={cn(
-                'font-bold text-lg',
-                totalSpent > totalBudget ? 'text-red-600' : 'text-blue-600'
-              )}>
-                {formatCurrency(totalSpent)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">남은 금액</span>
-              <span className={cn(
-                'font-bold text-lg',
-                totalRemaining < 0 ? 'text-red-600' : 'text-green-600'
-              )}>
-                {formatCurrency(totalRemaining)}
-              </span>
-            </div>
+      {/* Main Layout - Two Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left: Total Budget Overview */}
+        <Card className="p-6">
+          <CardHeader className="p-0 pb-4">
+            <CardTitle className="text-lg">Total Budget Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex flex-col items-center">
+              {/* Circular Progress */}
+              <CircularProgress percentage={totalPercentage} size={180} strokeWidth={14} />
 
-            {totalBudget > 0 && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>사용률</span>
-                  <span className={cn(
-                    'font-semibold',
-                    totalPercentage > 100 ? 'text-red-600' : totalPercentage >= 80 ? 'text-orange-600' : 'text-green-600'
-                  )}>
-                    {totalPercentage.toFixed(1)}%
-                  </span>
+              {/* Remaining Balance */}
+              <div className="mt-4 text-center">
+                <p className="text-sm text-muted-foreground">Remaining Balance</p>
+                <p className={cn(
+                  "text-3xl font-bold mt-1",
+                  totalRemaining < 0 ? "text-red-600" : "text-foreground"
+                )}>
+                  {formatCurrency(Math.abs(totalRemaining))}
+                </p>
+                {totalRemaining < 0 && (
+                  <p className="text-sm text-red-600">초과 지출</p>
+                )}
+              </div>
+
+              {/* Total Budget / Used */}
+              <div className="mt-6 pt-4 border-t w-full flex justify-around">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Total Budget</p>
+                  <p className="text-lg font-semibold">{formatCurrency(totalBudget)}</p>
                 </div>
-                <div className="w-full bg-muted rounded-full h-3">
-                  <div
-                    className={cn(
-                      'h-3 rounded-full transition-all',
-                      totalPercentage > 100 ? 'bg-red-600' : totalPercentage >= 80 ? 'bg-orange-500' : 'bg-green-600'
-                    )}
-                    style={{ width: `${Math.min(totalPercentage, 100)}%` }}
-                  />
+                <div className="w-px bg-border" />
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Used</p>
+                  <p className="text-lg font-semibold text-red-600">{formatCurrency(totalSpent)}</p>
                 </div>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Add Budget Button */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
-          <Button className="w-full">
-            <Plus className="h-4 w-4 mr-1" />
-            카테고리별 예산 설정
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>예산 설정</DialogTitle>
-            <DialogDescription className="sr-only">
-              카테고리를 선택하고 월별 예산 금액을 입력해 저장합니다.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">카테고리</Label>
-              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="카테고리 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {expenseCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="amount">예산 금액</Label>
-              <Input
-                id="amount"
-                type="number"
-                value={budgetAmount}
-                onChange={(e) => setBudgetAmount(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            <Button onClick={handleSetBudget} className="w-full">
-              설정
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Budget List */}
-      {budgetStats.length === 0 ? (
-        <Card className="p-12">
-          <div className="text-center text-muted-foreground">
-            <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p>설정된 예산이 없습니다</p>
-            <p className="text-sm mt-2">카테고리별 예산을 설정하여 지출을 관리하세요</p>
-          </div>
+          </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-3">
-          {budgetStats.map((stat) => stat && (
-            <Card key={stat.category.id}>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stat.category.color }} />
-                      <span className="font-semibold">{stat.category.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {stat.isOverBudget && (
-                        <AlertTriangle className="h-4 w-4 text-red-600" />
-                      )}
-                      {stat.isWarning && !stat.isOverBudget && (
-                        <AlertTriangle className="h-4 w-4 text-orange-500" />
-                      )}
-                      {!stat.isOverBudget && !stat.isWarning && stat.percentage > 0 && (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">예산</p>
-                      <p className="font-semibold">{formatCurrency(stat.budget)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">사용</p>
-                      <p className={cn(
-                        'font-semibold',
-                        stat.isOverBudget ? 'text-red-600' : 'text-blue-600'
-                      )}>
-                        {formatCurrency(stat.spent)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">남음</p>
-                      <p className={cn(
-                        'font-semibold',
-                        stat.remaining < 0 ? 'text-red-600' : 'text-green-600'
-                      )}>
-                        {formatCurrency(stat.remaining)}
-                      </p>
-                    </div>
+        {/* Right: Category Budgets */}
+        <Card className="p-6">
+          <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between">
+            <CardTitle className="text-lg">Category Budgets</CardTitle>
+            <Dialog open={dialogOpen} onOpenChange={(open) => {
+              if (!open) resetForm();
+              setDialogOpen(open);
+            }}>
+              <DialogTrigger asChild>
+                <Button size="sm" disabled={categoriesWithoutBudget.length === 0}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Category
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{editingBudget ? '예산 수정' : '예산 추가'}</DialogTitle>
+                  <DialogDescription className="sr-only">
+                    카테고리를 선택하고 월별 예산 금액을 입력해 저장합니다.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category">카테고리</Label>
+                    <Select
+                      value={selectedCategoryId}
+                      onValueChange={setSelectedCategoryId}
+                      disabled={!!editingBudget}
+                    >
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="카테고리 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(editingBudget
+                          ? expenseCategories.filter(cat => cat.id === editingBudget.categoryId)
+                          : categoriesWithoutBudget
+                        ).map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            <span className="flex items-center gap-2">
+                              <span>{cat.icon}</span>
+                              <span>{cat.name}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">예산 금액</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      value={budgetAmount}
+                      onChange={(e) => setBudgetAmount(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <Button onClick={handleSetBudget} className="w-full">
+                    {editingBudget ? '수정' : '추가'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </CardHeader>
+          <CardContent className="p-0 space-y-4 max-h-[400px] overflow-y-auto">
+            {budgetStats.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>설정된 예산이 없습니다</p>
+                <p className="text-sm mt-1">카테고리별 예산을 추가하세요</p>
+              </div>
+            ) : (
+              budgetStats.map((stat) => stat && (
+                <div
+                  key={stat.category.id}
+                  className="p-4 rounded-xl border bg-card hover:shadow-sm transition-shadow"
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Category Icon */}
+                    <CategoryIcon icon={stat.category.icon} color={stat.category.color} />
 
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span>{stat.percentage.toFixed(1)}% 사용</span>
-                      {stat.isOverBudget && (
-                        <span className="text-red-600 font-semibold">
-                          {formatCurrency(Math.abs(stat.remaining))} 초과
+                    {/* Category Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold">{stat.category.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "text-sm font-bold",
+                            stat.isOverBudget ? "text-red-600" :
+                            stat.isWarning ? "text-orange-500" : "text-green-600"
+                          )}>
+                            {stat.percentage.toFixed(0)}%
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => handleEdit(stat.budgetId, stat.category.id, stat.budget)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-red-500 hover:text-red-600"
+                            onClick={() => handleDelete(stat.budgetId)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all duration-300",
+                            stat.isOverBudget ? "bg-red-500" :
+                            stat.isWarning ? "bg-orange-500" : "bg-green-500"
+                          )}
+                          style={{ width: `${Math.min(stat.percentage, 100)}%` }}
+                        />
+                      </div>
+
+                      {/* Amount Info */}
+                      <div className="mt-2 flex items-center gap-2 text-sm">
+                        <span className={cn(
+                          "font-semibold",
+                          stat.isOverBudget ? "text-red-600" : "text-foreground"
+                        )}>
+                          {formatCurrency(stat.spent)}
                         </span>
-                      )}
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div
-                        className={cn(
-                          'h-2 rounded-full transition-all',
-                          stat.isOverBudget ? 'bg-red-600' : stat.isWarning ? 'bg-orange-500' : 'bg-green-600'
-                        )}
-                        style={{ width: `${Math.min(stat.percentage, 100)}%` }}
-                      />
+                        <span className="text-muted-foreground">/</span>
+                        <span className="text-muted-foreground">
+                          {formatCurrency(stat.budget)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
