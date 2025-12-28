@@ -62,6 +62,15 @@ export const creditCards = pgTable("credit_cards", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Benefit Tiers (혜택 등급)
+export const benefitTiers = pgTable("benefit_tiers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  cardId: uuid("card_id").notNull(),
+  threshold: decimal("threshold", { precision: 15, scale: 2 }).notNull(),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Recurring Transactions (정기 거래)
 export const recurringTransactions = pgTable("recurring_transactions", {
   id: uuid("id").defaultRandom().primaryKey(),

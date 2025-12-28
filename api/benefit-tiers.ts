@@ -1,0 +1,72 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { benefitTiers } from "./db-schema.js";
+import { eq } from "drizzle-orm";
+import { createDb } from "./_lib/vercelDb.js";
+import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp.js";
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setCorsHeaders(res);
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
+  const requestId = getRequestId(req);
+
+  try {
+    const db = createDb();
+
+    // GET: 전체 혜택 조회
+    if (req.method === "GET") {
+      const result = await db.select().from(benefitTiers);
+      return res.status(200).json(result);
+    }
+
+    // POST: 혜택 추가
+    if (req.method === "POST") {
+      const data = req.body;
+      const result = await db
+        .insert(benefitTiers)
+        .values({
+          cardId: data.cardId,
+          threshold: data.threshold.toString(),
+          description: data.description,
+        })
+        .returning();
+      return res.status(201).json(result[0]);
+    }
+
+    // PUT: 혜택 수정
+    if (req.method === "PUT") {
+      const { id } = req.query;
+      const data = req.body;
+      if (!id || typeof id !== "string") {
+        return res.status(400).json({ error: "Missing id" });
+      }
+      const result = await db
+        .update(benefitTiers)
+        .set({
+          threshold: data.threshold?.toString(),
+          description: data.description,
+        })
+        .where(eq(benefitTiers.id, id))
+        .returning();
+      return res.status(200).json(result[0]);
+    }
+
+    // DELETE: 혜택 삭제
+    if (req.method === "DELETE") {
+      const { id } = req.query;
+      if (!id || typeof id !== "string") {
+        return res.status(400).json({ error: "Missing id" });
+      }
+      await db.delete(benefitTiers).where(eq(benefitTiers.id, id));
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(405).json({ error: "Method not allowed" });
+  } catch (error) {
+    return sendError(res, requestId, error);
+  }
+}
+

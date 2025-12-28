@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { creditCardsApi } from "@/lib/api";
+import { creditCardsApi, benefitTiersApi } from "@/lib/api";
 import type { CreditCard, BenefitTier } from "@/types";
 
 export function useCreditCards() {
@@ -112,38 +112,109 @@ export function useCreditCards() {
   };
 }
 
-// Note: BenefitTiers API not yet implemented - can be added if needed
 export function useBenefitTiers(cardId?: string) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [allTiers, _setAllTiers] = useState<BenefitTier[]>([]);
+  const [allTiers, setAllTiers] = useState<BenefitTier[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBenefitTiers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await benefitTiersApi.getAll();
+      setAllTiers(data);
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch benefit tiers"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBenefitTiers();
+  }, [fetchBenefitTiers]);
 
   const tiers = cardId ? allTiers.filter((t) => t.cardId === cardId) : allTiers;
 
   const addBenefitTier = async (
-    _data: Omit<BenefitTier, "id" | "createdAt">
+    data: Omit<BenefitTier, "id" | "createdAt">
   ) => {
-    // TODO: Implement API call
-    console.warn("useBenefitTiers API not yet implemented");
+    // Optimistic update
+    const tempId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const optimisticTier: BenefitTier = {
+      ...data,
+      id: tempId,
+      createdAt: now,
+    };
+    setAllTiers((prev) => [...prev, optimisticTier]);
+
+    try {
+      const created = await benefitTiersApi.create(data);
+      // 임시 데이터를 실제 서버 응답으로 교체
+      setAllTiers((prev) => prev.map((t) => (t.id === tempId ? created : t)));
+      setError(null);
+    } catch (err) {
+      // 실패 시 optimistic update 롤백
+      setAllTiers((prev) => prev.filter((t) => t.id !== tempId));
+      setError(
+        err instanceof Error ? err.message : "Failed to add benefit tier"
+      );
+      throw err;
+    }
   };
 
   const updateBenefitTier = async (
-    _id: string,
-    _data: Partial<BenefitTier>
+    id: string,
+    data: Partial<BenefitTier>
   ) => {
-    // TODO: Implement API call
-    console.warn("useBenefitTiers API not yet implemented");
+    // Optimistic update
+    const previousTiers = allTiers;
+    setAllTiers((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)));
+
+    try {
+      const updated = await benefitTiersApi.update(id, data);
+      // 실제 서버 응답으로 교체
+      setAllTiers((prev) => prev.map((t) => (t.id === id ? updated : t)));
+      setError(null);
+    } catch (err) {
+      // 실패 시 롤백
+      setAllTiers(previousTiers);
+      setError(
+        err instanceof Error ? err.message : "Failed to update benefit tier"
+      );
+      throw err;
+    }
   };
 
-  const deleteBenefitTier = async (_id: string) => {
-    // TODO: Implement API call
-    console.warn("useBenefitTiers API not yet implemented");
+  const deleteBenefitTier = async (id: string) => {
+    // Optimistic update
+    const previousTiers = allTiers;
+    setAllTiers((prev) => prev.filter((t) => t.id !== id));
+
+    try {
+      await benefitTiersApi.delete(id);
+      setError(null);
+    } catch (err) {
+      // 실패 시 롤백
+      setAllTiers(previousTiers);
+      setError(
+        err instanceof Error ? err.message : "Failed to delete benefit tier"
+      );
+      throw err;
+    }
   };
 
   return {
     tiers,
     allTiers,
+    loading,
+    error,
     addBenefitTier,
     updateBenefitTier,
     deleteBenefitTier,
+    refetch: fetchBenefitTiers,
   };
 }

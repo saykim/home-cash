@@ -230,3 +230,28 @@ export const transactionTemplatesApi = {
       method: "DELETE",
     }).then((r) => handleResponse<{ success: boolean }>(r)),
 };
+
+// Benefit Tiers API
+export const benefitTiersApi = {
+  getAll: (): Promise<any[]> =>
+    fetch(`${API_BASE}/benefit-tiers`).then((r) => handleResponse<any[]>(r)),
+
+  create: (data: any): Promise<any> =>
+    fetch(`${API_BASE}/benefit-tiers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).then((r) => handleResponse<any>(r)),
+
+  update: (id: string, data: any): Promise<any> =>
+    fetch(`${API_BASE}/benefit-tiers?id=${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).then((r) => handleResponse<any>(r)),
+
+  delete: (id: string): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/benefit-tiers?id=${id}`, { method: "DELETE" }).then(
+      (r) => handleResponse<{ success: boolean }>(r)
+    ),
+};
