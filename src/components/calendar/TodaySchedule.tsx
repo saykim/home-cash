@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Calendar, CreditCard, TrendingDown, PartyPopper } from "lucide-react";
+import { CreditCard, TrendingDown, PartyPopper } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { getEventTypeLabel } from "@/lib/eventUtils";
 import { CalendarBadge, getCardColor } from "./CalendarBadge";
@@ -119,9 +119,9 @@ export function TodaySchedule({
                     </CalendarBadge>
                     <span className="text-sm font-medium">{event.name}</span>
                   </div>
-                  {event.targetYear && (
+                  {event.firstYear && (
                     <span className="text-xs text-muted-foreground">
-                      {new Date().getFullYear() - event.targetYear}주년
+                      {new Date().getFullYear() - event.firstYear}주년
                     </span>
                   )}
                 </div>

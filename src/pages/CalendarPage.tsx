@@ -8,12 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { AnnualEventForm } from "@/components/calendar/AnnualEventForm";
 import { CumulativeChart } from "@/components/calendar/CumulativeChart";
