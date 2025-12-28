@@ -1,48 +1,33 @@
-import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { AssetManagerDialog } from "@/components/assets/AssetManagerDialog";
+import { QuickActionsBar } from "@/components/home/QuickActionsBar";
 import { useAssets } from "@/hooks/useAssets";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCardPerformance } from "@/hooks/useCardPerformance";
-import { useAnnualEvents } from "@/hooks/useAnnualEvents";
-import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { getNextOccurrence, getEventTypeLabel } from "@/lib/eventUtils";
-import {
-  detectRecurringPatterns,
-  isPatternAlreadyRegistered,
-} from "@/lib/recurringDetection";
 import {
   Wallet,
   TrendingUp,
-  CreditCard,
-  List,
-  BarChart3,
-  Calendar,
-  Bell,
   ArrowUpRight,
   ArrowDownRight,
-  RefreshCw,
+  Bell,
 } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { Transaction } from "@/types";
 
 export default function HomePage() {
-  const navigate = useNavigate();
   const { allCategories, incomeCategories, expenseCategories } = useCategories();
   const { assets, totalBalance, addAsset, updateAsset, deleteAsset } = useAssets();
   const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const { creditCards } = useCreditCards();
   const monthStr = format(new Date(), "yyyy-MM");
   const { performances } = useCardPerformance(monthStr);
-  const { annualEvents } = useAnnualEvents();
-  const { recurringTransactions } = useRecurringTransactions();
 
   const recentTransactions = transactions.slice(0, 12);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -83,35 +68,6 @@ export default function HomePage() {
     })
     .filter((p) => p.daysUntil >= 0 && p.daysUntil <= 7)
     .sort((a, b) => a.daysUntil - b.daysUntil);
-
-  // Upcoming event notifications (D-0 to D-7)
-  const upcomingEvents = useMemo(() => {
-    return annualEvents
-      .map((event) => {
-        const nextDate = getNextOccurrence(event);
-        const daysUntil = differenceInDays(nextDate, new Date());
-        return { ...event, nextDate, daysUntil };
-      })
-      .filter((e) => e.daysUntil >= 0 && e.daysUntil <= 7)
-      .sort((a, b) => a.daysUntil - b.daysUntil);
-  }, [annualEvents]);
-
-  // Detect recurring transaction patterns
-  const suggestedRecurring = useMemo(() => {
-    const patterns = detectRecurringPatterns(transactions, allCategories, 3);
-    // Filter out patterns that are already registered
-    return patterns.filter(
-      (pattern) => !isPatternAlreadyRegistered(pattern, recurringTransactions)
-    );
-  }, [transactions, allCategories, recurringTransactions]);
-
-  const quickActions = [
-    { icon: Calendar, label: "캘린더", path: "/calendar" },
-    { icon: CreditCard, label: "체리피커", path: "/cherry-picker" },
-    { icon: Wallet, label: "카드", path: "/cards" },
-    { icon: List, label: "거래", path: "/transactions" },
-    { icon: BarChart3, label: "통계", path: "/statistics" },
-  ];
 
   return (
     <div className="space-y-6">
@@ -222,43 +178,21 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left Column - Main Content (8 columns) */}
-        <div className="col-span-8 space-y-6">
-          {/* Quick Transaction Buttons */}
-          <div className="flex gap-3">
-            <TransactionForm
-              defaultType="INCOME"
-              addTransaction={addTransaction}
-              updateTransaction={updateTransaction}
-              deleteTransaction={deleteTransaction}
+      {/* Quick Actions Navigation Bar */}
+      <QuickActionsBar
               assets={assets}
               incomeCategories={incomeCategories}
               expenseCategories={expenseCategories}
               creditCards={creditCards}
-            >
-              <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm">
-                <ArrowUpRight className="h-5 w-5" />
-                수입 입력
-              </button>
-            </TransactionForm>
-            <TransactionForm
-              defaultType="EXPENSE"
               addTransaction={addTransaction}
               updateTransaction={updateTransaction}
               deleteTransaction={deleteTransaction}
-              assets={assets}
-              incomeCategories={incomeCategories}
-              expenseCategories={expenseCategories}
-              creditCards={creditCards}
-            >
-              <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-sm">
-                <ArrowDownRight className="h-5 w-5" />
-                지출 입력
-              </button>
-            </TransactionForm>
-          </div>
+      />
+
+      {/* Main Dashboard Grid - 3 Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+        {/* Left Column - Assets (4 columns) */}
+        <div className="lg:col-span-4 space-y-6">
 
           {/* Assets Table */}
           <Card className="border">
@@ -285,9 +219,9 @@ export default function HomePage() {
                   등록된 자산이 없습니다
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
                   <table className="w-full">
-                    <thead>
+                    <thead className="sticky top-0 bg-background z-10">
                       <tr className="border-b bg-muted/30">
                         <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">
                           자산명
@@ -349,6 +283,10 @@ export default function HomePage() {
               )}
             </CardContent>
           </Card>
+        </div>
+
+        {/* Middle Column - Recent Transactions (4 columns) */}
+        <div className="lg:col-span-4 space-y-6">
 
           {/* Recent Transactions Table */}
           <Card className="border">
@@ -357,12 +295,6 @@ export default function HomePage() {
                 <CardTitle className="text-base font-semibold">
                   최근 거래
                 </CardTitle>
-                <button
-                  onClick={() => navigate("/transactions")}
-                  className="text-xs text-primary font-medium px-2 py-1 -mx-2 rounded hover:bg-primary/10 transition-colors"
-                >
-                  전체보기
-                </button>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -371,9 +303,9 @@ export default function HomePage() {
                   거래 내역이 없습니다
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
                   <table className="w-full">
-                    <thead>
+                    <thead className="sticky top-0 bg-background z-10">
                       <tr className="border-b bg-muted/30">
                         <th className="text-left py-4 px-5 text-sm font-medium text-muted-foreground">
                           날짜
@@ -462,121 +394,38 @@ export default function HomePage() {
           </Card>
         </div>
 
-        {/* Right Column - Sidebar (4 columns) */}
-        <div className="col-span-4 space-y-6">
-          {/* Quick Actions */}
-          <Card className="border hover:border-primary/50 hover:shadow-md transition-all duration-200">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-base font-semibold">
-                빠른 실행
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3">
-              <div className="grid grid-cols-2 gap-2">
-                {quickActions.map((action) => (
-                  <button
-                    key={action.path}
-                    onClick={() => navigate(action.path)}
-                    className="flex flex-col items-center justify-center p-3 rounded-lg border hover:border-primary hover:bg-primary/5 transition-all group"
-                  >
-                    <action.icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors mb-2" />
-                    <span className="text-xs font-medium group-hover:text-primary transition-colors">
-                      {action.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Upcoming Events */}
-          {upcomingEvents.length > 0 && (
-            <Card className="border border-pink-200 dark:border-pink-900/50 bg-pink-50/30 dark:bg-pink-950/10">
-              <CardHeader className="pb-3 border-b border-pink-200 dark:border-pink-900/50">
-                <CardTitle className="text-base font-semibold text-pink-700 dark:text-pink-400 flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  다가오는 이벤트
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-3">
-                <div className="space-y-2">
-                  {upcomingEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      className={cn(
-                        "p-3 rounded-lg border transition-all",
-                        event.daysUntil === 0 &&
-                          "bg-pink-100 dark:bg-pink-900/30 border-pink-300 dark:border-pink-800",
-                        event.daysUntil > 0 &&
-                          event.daysUntil <= 3 &&
-                          "bg-orange-100 dark:bg-orange-900/30 border-orange-300 dark:border-orange-800",
-                        event.daysUntil > 3 &&
-                          "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-800"
-                      )}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm leading-tight">
-                            {event.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {getEventTypeLabel(event.type)} ·{" "}
-                            {format(event.nextDate, "M/d (E)", { locale: ko })}
-                          </p>
-                        </div>
-                        <div
-                          className={cn(
-                            "px-2 py-1 rounded text-xs font-bold",
-                            event.daysUntil === 0 && "bg-pink-600 text-white",
-                            event.daysUntil > 0 &&
-                              event.daysUntil <= 3 &&
-                              "bg-orange-600 text-white",
-                            event.daysUntil > 3 && "bg-blue-600 text-white"
-                          )}
-                        >
-                          {event.daysUntil === 0
-                            ? "오늘!"
-                            : `D-${event.daysUntil}`}
-                        </div>
-                      </div>
-                      {event.amount && (
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">예산</p>
-                          <p className="font-bold text-base tabular-nums">
-                            {formatCurrency(event.amount)}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        {/* Right Column - Upcoming Payments (4 columns) */}
+        <div className="lg:col-span-4 space-y-6">
 
           {/* Upcoming Payments */}
-          {upcomingPayments.length > 0 && (
-            <Card className="border border-orange-200 dark:border-orange-900/50 bg-orange-50/30 dark:bg-orange-950/10">
-              <CardHeader className="pb-3 border-b border-orange-200 dark:border-orange-900/50">
-                <CardTitle className="text-base font-semibold text-orange-700 dark:text-orange-400 flex items-center gap-2">
+          <Card className="border">
+            <CardHeader className="pb-3 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <Bell className="h-4 w-4" />
                   결제 예정
                 </CardTitle>
+              </div>
               </CardHeader>
-              <CardContent className="p-3">
-                <div className="space-y-2">
+            <CardContent className="p-0">
+              {upcomingPayments.length === 0 ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  예정된 결제가 없습니다
+                </div>
+              ) : (
+                <div className="max-h-[500px] overflow-y-auto p-3 space-y-2">
                   {upcomingPayments.map((payment) => (
                     <div
                       key={payment.cardId}
                       className={cn(
-                        "p-3 rounded-lg border transition-all",
+                        "p-3 rounded-lg border transition-all hover:shadow-md",
                         payment.daysUntil === 0 &&
-                          "bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-800",
+                          "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50",
                         payment.daysUntil > 0 &&
                           payment.daysUntil <= 3 &&
-                          "bg-orange-100 dark:bg-orange-900/30 border-orange-300 dark:border-orange-800",
+                          "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50",
                         payment.daysUntil > 3 &&
-                          "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-800"
+                          "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/50"
                       )}
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -585,6 +434,7 @@ export default function HomePage() {
                             {payment.cardName}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
+                            결제일:{" "}
                             {format(
                               parseISO(payment.nextBillingDate),
                               "M/d (E)",
@@ -608,66 +458,17 @@ export default function HomePage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-base tabular-nums">
+                        <p className="text-xs text-muted-foreground">결제 금액</p>
+                        <p className="font-bold text-lg tabular-nums">
                           {formatCurrency(payment.billingAmount)}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
+              )}
               </CardContent>
             </Card>
-          )}
-
-          {/* Suggested Recurring Transactions */}
-          {suggestedRecurring.length > 0 && (
-            <Card className="border border-purple-200 dark:border-purple-900/50 bg-purple-50/30 dark:bg-purple-950/10">
-              <CardHeader className="pb-3 border-b border-purple-200 dark:border-purple-900/50">
-                <CardTitle className="text-base font-semibold text-purple-700 dark:text-purple-400 flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4" />
-                  반복 거래 제안
-                </CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
-                  최근 {suggestedRecurring.length}개의 반복 패턴이
-                  감지되었습니다
-                </p>
-              </CardHeader>
-              <CardContent className="p-3">
-                <div className="space-y-2">
-                  {suggestedRecurring.slice(0, 3).map((pattern) => (
-                    <div
-                      key={pattern.categoryId}
-                      className="p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-purple-950/20 transition-all hover:shadow-sm"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm leading-tight">
-                            {pattern.categoryName}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            최근 {pattern.occurrences}개월 연속 발생 · 신뢰도{" "}
-                            {pattern.confidence}%
-                          </p>
-                        </div>
-                        <div className="px-2 py-1 rounded text-xs font-bold bg-purple-600 text-white">
-                          {(pattern.averageAmount / 10000).toFixed(1)}만원
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {pattern.suggestion}
-                      </p>
-                      <button
-                        onClick={() => navigate("/settings")}
-                        className="mt-2 text-xs text-purple-600 dark:text-purple-400 font-medium hover:underline"
-                      >
-                        정기 거래로 등록 →
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
 
