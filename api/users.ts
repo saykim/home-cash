@@ -1,13 +1,14 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { eq } from "drizzle-orm";
-import { setCorsHeaders, sendError, getRequestId, HttpError } from "./_lib/vercelHttp";
-import { getAuth } from "./_lib/firebaseAdmin";
-import { verifyAuth } from "./_lib/vercelAuth";
-import { users, categories, assets } from "./db-schema";
+import { setCorsHeaders, sendError, getRequestId, HttpError } from "./_lib/vercelHttp.js";
+import { getAuth } from "./_lib/firebaseAdmin.js";
+import { verifyAuth } from "./_lib/vercelAuth.js";
+import { users, categories, assets } from "./db-schema.js";
 
 function createDb() {
-  const sqlClient = neon(process.env.DATABASE_URL);
+  const sqlClient = neon(process.env.DATABASE_URL!);
   return drizzle(sqlClient);
 }
 
@@ -17,7 +18,7 @@ function createDb() {
  * POST /api/users - Sign up (create user + default categories + cash asset)
  * GET /api/users/me - Get current user info
  */
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, req);
 
   if (req.method === "OPTIONS") {
