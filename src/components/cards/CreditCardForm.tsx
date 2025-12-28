@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Edit } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -22,10 +22,20 @@ import { useAssets } from '@/hooks/useAssets';
 import type { CreditCard } from '@/types';
 
 interface CreditCardFormProps {
-  addCreditCard: (data: Omit<CreditCard, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  mode?: 'create' | 'edit';
+  card?: CreditCard;
+  addCreditCard?: (data: Omit<CreditCard, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateCreditCard?: (id: string, data: Partial<CreditCard>) => Promise<void>;
+  trigger?: React.ReactNode;
 }
 
-export function CreditCardForm({ addCreditCard }: CreditCardFormProps) {
+export function CreditCardForm({ 
+  mode = 'create',
+  card,
+  addCreditCard,
+  updateCreditCard,
+  trigger
+}: CreditCardFormProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [billingDay, setBillingDay] = useState('25');
@@ -37,6 +47,19 @@ export function CreditCardForm({ addCreditCard }: CreditCardFormProps) {
 
   const { assets } = useAssets();
 
+  // 수정 모드일 때 초기값 설정
+  useEffect(() => {
+    if (mode === 'edit' && card) {
+      setName(card.name);
+      setBillingDay(String(card.billingDay));
+      setStartOffset(String(card.startOffset));
+      setStartDay(String(card.startDay));
+      setEndOffset(String(card.endOffset));
+      setEndDay(String(card.endDay));
+      setLinkedAssetId(card.linkedAssetId);
+    }
+  }, [mode, card, open]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -45,7 +68,7 @@ export function CreditCardForm({ addCreditCard }: CreditCardFormProps) {
       return;
     }
 
-    await addCreditCard({
+    const payload = {
       name,
       billingDay: Number(billingDay),
       startOffset: Number(startOffset),
@@ -53,32 +76,51 @@ export function CreditCardForm({ addCreditCard }: CreditCardFormProps) {
       endOffset: Number(endOffset),
       endDay: Number(endDay),
       linkedAssetId
-    });
+    };
 
-    // Reset form
-    setName('');
-    setBillingDay('25');
-    setStartOffset('-1');
-    setStartDay('1');
-    setEndOffset('0');
-    setEndDay('31');
-    setLinkedAssetId('');
+    if (mode === 'edit' && card && updateCreditCard) {
+      await updateCreditCard(card.id, payload);
+    } else if (mode === 'create' && addCreditCard) {
+      await addCreditCard(payload);
+    }
+
+    // Reset form (create 모드에서만)
+    if (mode === 'create') {
+      setName('');
+      setBillingDay('25');
+      setStartOffset('-1');
+      setStartDay('1');
+      setEndOffset('0');
+      setEndDay('31');
+      setLinkedAssetId('');
+    }
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-1" />
-          카드 추가
-        </Button>
+        {trigger || (
+          <Button>
+            {mode === 'edit' ? (
+              <>
+                <Edit className="h-4 w-4 mr-1" />
+                수정
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-1" />
+                카드 추가
+              </>
+            )}
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>신용카드 추가</DialogTitle>
+          <DialogTitle>{mode === 'edit' ? '신용카드 수정' : '신용카드 추가'}</DialogTitle>
           <DialogDescription className="sr-only">
-            카드명과 결제일, 이용 기간, 연결 자산을 입력해 신용카드를 추가합니다.
+            카드명과 결제일, 이용 기간, 연결 자산을 입력해 신용카드를 {mode === 'edit' ? '수정' : '추가'}합니다.
           </DialogDescription>
         </DialogHeader>
 

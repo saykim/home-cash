@@ -5,10 +5,10 @@ import { BenefitTierForm } from '@/components/cards/BenefitTierForm';
 import { useCreditCards, useBenefitTiers } from '@/hooks/useCreditCards';
 import { useAssets } from '@/hooks/useAssets';
 import { formatCurrency } from '@/lib/formatters';
-import { CreditCard, Trash2, Award } from 'lucide-react';
+import { CreditCard, Trash2, Award, Edit } from 'lucide-react';
 
 export default function CardsPage() {
-  const { creditCards, addCreditCard, deleteCreditCard } = useCreditCards();
+  const { creditCards, addCreditCard, updateCreditCard, deleteCreditCard } = useCreditCards();
   const { allTiers, addBenefitTier, deleteBenefitTier } = useBenefitTiers();
   const { assets } = useAssets();
 
@@ -64,14 +64,27 @@ export default function CardsPage() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteCard(card.id)}
-                    className="hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <CreditCardForm
+                      mode="edit"
+                      card={card}
+                      updateCreditCard={updateCreditCard}
+                      trigger={
+                        <Button variant="ghost" size="icon" title="수정">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteCard(card.id)}
+                      className="hover:text-destructive"
+                      title="삭제"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardHeader>
 
                 <CardContent>

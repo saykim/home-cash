@@ -35,13 +35,14 @@ import {
   Power,
   PowerOff,
   Calendar,
+  Edit,
 } from "lucide-react";
 import { cn, formatAmountInput, parseFormattedAmount } from "@/lib/utils";
 import type { AssetType, CategoryKind, EventType } from "@/types";
 
 export default function SettingsPage() {
-  const { assets, addAsset, deleteAsset } = useAssets();
-  const { allCategories, incomeCategories, expenseCategories, addCategory, deleteCategory } = useCategories();
+  const { assets, addAsset, updateAsset, deleteAsset } = useAssets();
+  const { allCategories, incomeCategories, expenseCategories, addCategory, updateCategory, deleteCategory } = useCategories();
   const {
     recurringTransactions,
     addRecurringTransaction,
@@ -58,7 +59,12 @@ export default function SettingsPage() {
   } = useAnnualEvents();
 
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
+  const [assetDialogMode, setAssetDialogMode] = useState<'create' | 'edit'>('create');
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [categoryDialogMode, setCategoryDialogMode] = useState<'create' | 'edit'>('create');
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
 
   const [assetName, setAssetName] = useState("");
   const [assetType, setAssetType] = useState<AssetType>("BANK");
@@ -67,19 +73,43 @@ export default function SettingsPage() {
   const [categoryName, setCategoryName] = useState("");
   const [categoryKind, setCategoryKind] = useState<CategoryKind>("EXPENSE");
 
-  const handleAddAsset = async () => {
+  const handleOpenAssetDialog = (mode: 'create' | 'edit', asset?: typeof assets[0]) => {
+    setAssetDialogMode(mode);
+    if (mode === 'edit' && asset) {
+      setEditingAssetId(asset.id);
+      setAssetName(asset.name);
+      setAssetType(asset.type);
+      setAssetBalance(String(asset.balance));
+    } else {
+      setEditingAssetId(null);
+      setAssetName("");
+      setAssetType("BANK");
+      setAssetBalance("");
+    }
+    setAssetDialogOpen(true);
+  };
+
+  const handleSubmitAsset = async () => {
     if (!assetName || !assetBalance) {
       alert("자산명과 잔액을 입력해주세요.");
       return;
     }
 
     try {
-      await addAsset({
-        name: assetName,
-        type: assetType,
-        balance: parseFormattedAmount(assetBalance),
-        initialBalance: parseFormattedAmount(assetBalance),
-      });
+      if (assetDialogMode === 'edit' && editingAssetId) {
+        await updateAsset(editingAssetId, {
+          name: assetName,
+          type: assetType,
+          balance: parseFormattedAmount(assetBalance),
+        });
+      } else {
+        await addAsset({
+          name: assetName,
+          type: assetType,
+          balance: parseFormattedAmount(assetBalance),
+          initialBalance: parseFormattedAmount(assetBalance),
+        });
+      }
 
       setAssetName("");
       setAssetBalance("");
@@ -98,32 +128,59 @@ export default function SettingsPage() {
     }
   };
 
-  const handleAddCategory = async () => {
+  const handleOpenCategoryDialog = (mode: 'create' | 'edit', category?: typeof allCategories[0]) => {
+    setCategoryDialogMode(mode);
+    if (mode === 'edit' && category) {
+      setEditingCategoryId(category.id);
+      setCategoryName(category.name);
+      setCategoryKind(category.kind);
+    } else {
+      setEditingCategoryId(null);
+      setCategoryName("");
+      setCategoryKind("EXPENSE");
+    }
+    setCategoryDialogOpen(true);
+  };
+
+  const handleSubmitCategory = async () => {
     if (!categoryName) {
       alert("카테고리명을 입력해주세요.");
       return;
     }
 
-    const colors = [
-      "#ef4444",
-      "#f97316",
-      "#eab308",
-      "#22c55e",
-      "#3b82f6",
-      "#8b5cf6",
-      "#ec4899",
-    ];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    try {
+      if (categoryDialogMode === 'edit' && editingCategoryId) {
+        await updateCategory(editingCategoryId, {
+          name: categoryName,
+          kind: categoryKind,
+        });
+      } else {
+        const colors = [
+          "#ef4444",
+          "#f97316",
+          "#eab308",
+          "#22c55e",
+          "#3b82f6",
+          "#8b5cf6",
+          "#ec4899",
+        ];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
-    await addCategory({
-      name: categoryName,
-      kind: categoryKind,
-      color: randomColor,
-    });
+        await addCategory({
+          name: categoryName,
+          kind: categoryKind,
+          color: randomColor,
+        });
+      }
 
-    setCategoryName("");
-    setCategoryKind("EXPENSE");
-    setCategoryDialogOpen(false);
+      setCategoryName("");
+      setCategoryKind("EXPENSE");
+      setCategoryDialogOpen(false);
+    } catch (err) {
+      alert(
+        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
+      );
+    }
   };
 
   const handleDeleteCategory = async (id: string) => {
@@ -158,16 +215,16 @@ export default function SettingsPage() {
                   onOpenChange={setAssetDialogOpen}
                 >
                   <DialogTrigger asChild>
-                    <Button size="sm">
+                    <Button size="sm" onClick={() => handleOpenAssetDialog('create')}>
                       <Plus className="h-4 w-4 mr-1" />
                       추가
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>자산 추가</DialogTitle>
+                      <DialogTitle>{assetDialogMode === 'edit' ? '자산 수정' : '자산 추가'}</DialogTitle>
                       <DialogDescription className="sr-only">
-                        자산명, 유형, 초기 잔액을 입력해 자산을 추가합니다.
+                        자산명, 유형, 초기 잔액을 입력해 자산을 {assetDialogMode === 'edit' ? '수정' : '추가'}합니다.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -209,7 +266,7 @@ export default function SettingsPage() {
                           className="text-right"
                         />
                       </div>
-                      <Button onClick={handleAddAsset} className="w-full">
+                      <Button onClick={handleSubmitAsset} className="w-full">
                         저장
                       </Button>
                     </div>
@@ -281,14 +338,26 @@ export default function SettingsPage() {
                             </span>
                           </td>
                           <td className="py-4 px-5 text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteAsset(asset.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenAssetDialog('edit', asset)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="수정"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteAsset(asset.id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="삭제"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -311,16 +380,16 @@ export default function SettingsPage() {
                   onOpenChange={setCategoryDialogOpen}
                 >
                   <DialogTrigger asChild>
-                    <Button size="sm">
+                    <Button size="sm" onClick={() => handleOpenCategoryDialog('create')}>
                       <Plus className="h-4 w-4 mr-1" />
                       추가
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>카테고리 추가</DialogTitle>
+                      <DialogTitle>{categoryDialogMode === 'edit' ? '카테고리 수정' : '카테고리 추가'}</DialogTitle>
                       <DialogDescription className="sr-only">
-                        카테고리명과 유형(수입/지출)을 입력해 카테고리를 추가합니다.
+                        카테고리명과 유형(수입/지출)을 입력해 카테고리를 {categoryDialogMode === 'edit' ? '수정' : '추가'}합니다.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -350,7 +419,7 @@ export default function SettingsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <Button onClick={handleAddCategory} className="w-full">
+                      <Button onClick={handleSubmitCategory} className="w-full">
                         저장
                       </Button>
                     </div>
@@ -382,14 +451,26 @@ export default function SettingsPage() {
                               {category.name}
                             </span>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDeleteCategory(category.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleOpenCategoryDialog('edit', category)}
+                              title="수정"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleDeleteCategory(category.id)}
+                              title="삭제"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                   </div>
@@ -417,14 +498,26 @@ export default function SettingsPage() {
                               {category.name}
                             </span>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDeleteCategory(category.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleOpenCategoryDialog('edit', category)}
+                              title="수정"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleDeleteCategory(category.id)}
+                              title="삭제"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                   </div>
