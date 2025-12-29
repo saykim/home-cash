@@ -38,8 +38,7 @@ export default function HomePage() {
     useTransactions();
   const { creditCards } = useCreditCards();
   const monthStr = format(new Date(), "yyyy-MM");
-  const { performances, updateManualAmount, totalBillingAmount } =
-    useCardPerformance(monthStr);
+  const { performances, updateManualAmount } = useCardPerformance(monthStr);
 
   const recentTransactions = transactions.slice(0, 12);
   const [editingTransaction, setEditingTransaction] =
@@ -78,24 +77,34 @@ export default function HomePage() {
    * 수정: 수입 - (전체지출 - 신용카드지출) - 청구금액
    * 설명: '전체지출 - 신용카드지출'은 현금/체크카드 지출을 의미. 여기에 보정된(수기입력 포함) 청구금액을 뺌.
    */
-  const {
-    totalIncome: monthIncome,
-    totalExpense: monthExpense,
-    currentTransactions,
-  } = usePeriodStats("month", new Date());
+  /*
+   * Available Balance 계산 로직 수정 (현금 흐름 모델)
+   * 1. monthIncome: 이번 달 총 수입
+   * 2. monthCashExpense: 현금성 지출 (전체 지출 - 신용카드 이용 금액)
+   * 3. billingAmountDueThisMonth: 이번 달에 결제일이 도래하는 카드 대금 (수기 보정 금액 반영)
+   * 공식: 수입 - 현금성지출 - 이번달 카드결제액
+   */
+  const { totalIncome: monthIncome, totalExpense: monthExpense } =
+    usePeriodStats("month", new Date());
 
-  const monthCreditSpend = (currentTransactions || [])
-    .filter((t) => {
-      if (t.type !== "EXPENSE" || !t.cardId) return false;
-      const card = creditCards.find((c) => c.id === t.cardId);
-      return card?.cardType === "CREDIT";
-    })
-    .reduce((sum, t) => sum + t.amount, 0);
+  // 신용카드 이용 금액 (이번 달 지출 중 신용카드 긁은 금액)
+  const monthCreditSpend = performances
+    .filter((p) => p.cardType === "CREDIT")
+    .reduce((sum, p) => sum + p.currentMonthSpend, 0);
 
-  // 현금성 지출 (체크카드 포함, 신용카드 제외)
+  // 현금성 지출 (체크카드 포함, 신용카드 지출 제외)
   const monthCashExpense = monthExpense - monthCreditSpend;
 
-  const availableBalance = monthIncome - monthCashExpense - totalBillingAmount;
+  // 이번 달 내에 납부해야 하는 카드 대금 합계 (수기 입력값 우선)
+  const currentMonthStr = format(new Date(), "yyyy-MM");
+  const billingAmountDueThisMonth = performances
+    .filter(
+      (p) => p.nextBillingDate && p.nextBillingDate.startsWith(currentMonthStr)
+    )
+    .reduce((sum, p) => sum + p.billingAmount, 0);
+
+  const availableBalance =
+    monthIncome - monthCashExpense - billingAmountDueThisMonth;
 
   // Upcoming payment notifications (신용카드만)
   const upcomingPayments = performances

@@ -112,17 +112,17 @@ export function useCardPerformance(month?: string) {
       const billingAmount =
         manualAmount !== undefined ? manualAmount : currentMonthSpend;
 
+      const cardType = card.cardType || ("CREDIT" as CardType);
+
       return {
         cardId: card.id,
         cardName: card.name,
-        cardType: card.cardType,
+        cardType,
         currentMonthSpend,
         currentMonthTransactions: cardTransactions.length,
         billingAmount, // Use manual amount if set, otherwise current spend
         nextBillingDate:
-          card.cardType === "CREDIT"
-            ? format(nextBillingDate, "yyyy-MM-dd")
-            : "",
+          cardType === "CREDIT" ? format(nextBillingDate, "yyyy-MM-dd") : "",
         achievedTiers: tierStatuses.filter((t) => t.achieved),
         nextTier,
         remainingForNextTier,
