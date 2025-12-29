@@ -1,4 +1,6 @@
 import { eq } from "drizzle-orm";
+import type { NeonHttpDatabase } from "drizzle-orm/neon-http";
+import type { VercelRequest } from "@vercel/node";
 import { HttpError } from "./vercelHttp.js";
 import { users } from "../db-schema.js";
 
@@ -11,7 +13,7 @@ import { users } from "../db-schema.js";
  *   2) users 테이블의 첫 번째 사용자 id
  *   3) users 테이블이 비어있으면 "shared" 사용자 1개를 생성
  */
-async function resolveSharedUserId(db) {
+async function resolveSharedUserId(db: NeonHttpDatabase<any>) {
   const envUserId =
     typeof process.env.SHARED_USER_ID === "string"
       ? process.env.SHARED_USER_ID.trim()
@@ -48,7 +50,7 @@ async function resolveSharedUserId(db) {
  * @returns User ID from database
  * @throws HttpError(401) if token is invalid or user not found
  */
-export async function verifyAuth(req, db) {
+export async function verifyAuth(req: VercelRequest, db: NeonHttpDatabase<any>) {
   try {
     // 1. Extract token from Authorization header
     const authHeader = req.headers?.authorization;
@@ -91,7 +93,7 @@ export async function verifyAuth(req, db) {
  * @returns User ID from database
  * @throws HttpError(403) if user doesn't own the resource
  */
-export async function verifyAuthAndOwnership(req, db, resourceUserId) {
+export async function verifyAuthAndOwnership(req: VercelRequest, db: NeonHttpDatabase<any>, resourceUserId: string) {
   const userId = await verifyAuth(req, db);
 
   if (userId !== resourceUserId) {
