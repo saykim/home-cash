@@ -84,14 +84,20 @@ export default function HomePage() {
    * 3. billingAmountDueThisMonth: 이번 달에 결제일이 도래하는 카드 대금 (수기 보정 금액 반영)
    * 공식: 수입 - 현금성지출 - 이번달 카드결제액
    */
-  const { totalIncome: monthIncome, totalExpense: monthExpense } =
-    usePeriodStats("month", new Date());
+  const {
+    totalIncome: monthIncome,
+    totalExpense: monthExpense,
+    currentTransactions,
+  } = usePeriodStats("month", new Date());
 
   // 신용카드 이용 금액 (이번 달 전체 지출 중 '카드'로 긁어서 아직 현금이 나가지 않은 금액)
   // 거래 내역 중 cardId가 있는 지출을 모두 합산합니다.
-  const monthCreditSpend = (transactions || [])
-    .filter((t) => t.type === "EXPENSE" && t.cardId && t.cardId !== "NONE")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const monthCreditSpend = (currentTransactions || [])
+    .filter(
+      (t: Transaction) =>
+        t.type === "EXPENSE" && t.cardId && t.cardId !== "NONE"
+    )
+    .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
 
   // 현금성 지출 (수입에서 즉시 차감되는 지출: 전체 지출 - 카드 이용 금액)
   const monthCashExpense = monthExpense - monthCreditSpend;
