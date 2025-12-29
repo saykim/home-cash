@@ -34,12 +34,12 @@ export default function CherryPickerPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">체리피커 대시보드</h1>
+        <h1 className="text-2xl font-bold">체리피커 대시보드</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium min-w-[100px] text-center">
+          <span className="text-sm font-medium min-w-[140px] text-center">
             {format(currentMonth, 'yyyy년 M월', { locale: ko })}
           </span>
           <Button variant="outline" size="icon" onClick={nextMonth}>

@@ -74,7 +74,7 @@ export default function HomePage() {
       {/* Header with Date */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">대시보드</h1>
+          <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             {format(new Date(), "yyyy년 M월 d일 EEEE", { locale: ko })}
           </p>

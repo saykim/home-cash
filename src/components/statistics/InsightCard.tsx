@@ -20,22 +20,22 @@ const iconMap = {
 
 const styleMap = {
   warning: {
-    container: 'bg-red-50 border-red-200',
-    icon: 'text-red-600',
-    title: 'text-red-900',
-    description: 'text-red-700'
+    container: 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
+    icon: 'text-red-600 dark:text-red-400',
+    title: 'text-red-900 dark:text-red-200',
+    description: 'text-red-700 dark:text-red-300'
   },
   alert: {
-    container: 'bg-orange-50 border-orange-200',
-    icon: 'text-orange-600',
-    title: 'text-orange-900',
-    description: 'text-orange-700'
+    container: 'bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800',
+    icon: 'text-orange-600 dark:text-orange-400',
+    title: 'text-orange-900 dark:text-orange-200',
+    description: 'text-orange-700 dark:text-orange-300'
   },
   info: {
-    container: 'bg-blue-50 border-blue-200',
-    icon: 'text-blue-600',
-    title: 'text-blue-900',
-    description: 'text-blue-700'
+    container: 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800',
+    icon: 'text-blue-600 dark:text-blue-400',
+    title: 'text-blue-900 dark:text-blue-200',
+    description: 'text-blue-700 dark:text-blue-300'
   }
 };
 

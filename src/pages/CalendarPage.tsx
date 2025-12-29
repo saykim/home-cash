@@ -319,7 +319,7 @@ export default function CalendarPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold">캘린더</h1>
+          <h1 className="text-2xl font-bold">캘린더</h1>
           <AnnualEventForm
             addAnnualEvent={addAnnualEvent}
             updateAnnualEvent={updateAnnualEvent}

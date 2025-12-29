@@ -31,7 +31,7 @@ export default function CardsPage() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">신용카드 관리</h1>
+        <h1 className="text-2xl font-bold">신용카드 관리</h1>
         <CreditCardForm addCreditCard={addCreditCard} />
       </div>
 

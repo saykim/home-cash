@@ -39,9 +39,9 @@ function CircularProgress({ percentage, size = 200, strokeWidth = 16 }: {
 
   // Determine color based on percentage
   const getColor = () => {
-    if (percentage >= 100) return '#ef4444'; // red
-    if (percentage >= 80) return '#f97316'; // orange
-    return '#22c55e'; // green
+    if (percentage >= 100) return 'hsl(var(--status-danger))';
+    if (percentage >= 80) return 'hsl(var(--status-warning))';
+    return 'hsl(var(--status-success))';
   };
 
   return (
@@ -210,7 +210,7 @@ export default function BudgetPage() {
           <Button variant="outline" size="icon" onClick={prevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium min-w-[120px] text-center px-3 py-2 bg-muted rounded-lg">
+          <span className="text-sm font-medium min-w-[140px] text-center px-3 py-2 bg-muted rounded-lg">
             {format(currentMonth, 'yyyy년 M월', { locale: ko })}
           </span>
           <Button variant="outline" size="icon" onClick={nextMonth}>
