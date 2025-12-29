@@ -179,4 +179,6 @@ export interface PeriodStats {
     expenseChange: number;
     netChange: number;
   };
+  currentTransactions?: Transaction[];
+  previousTransactions?: Transaction[];
 }

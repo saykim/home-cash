@@ -21,7 +21,7 @@ export function CategoryDetailList({ categories }: CategoryDetailListProps) {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle className="text-lg">카테고리 내세일</CardTitle>
+        <CardTitle className="text-lg">카테고리별 상세</CardTitle>
       </CardHeader>
       <CardContent>
         {sortedCategories.length === 0 ? (

@@ -6,6 +6,7 @@ import { CategoryPieChart } from '@/components/statistics/CategoryPieChart';
 import { TrendChart } from '@/components/statistics/TrendChart';
 import { InsightCard } from '@/components/statistics/InsightCard';
 import { CategoryDetailList } from '@/components/statistics/CategoryDetailList';
+import { InsightTransactionList } from '@/components/statistics/InsightTransactionList';
 import { usePeriodStats } from '@/hooks/usePeriodStats';
 import { useTrendData } from '@/hooks/useTrendData';
 import { getPeriodRange, getPreviousPeriod, getNextPeriod } from '@/lib/periodUtils';
@@ -15,6 +16,7 @@ import type { PeriodMode } from '@/types';
 export default function StatisticsPage() {
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
 
   const periodRange = useMemo(() => getPeriodRange(periodMode, currentDate), [periodMode, currentDate]);
   const stats = usePeriodStats(periodMode, currentDate);
@@ -22,10 +24,16 @@ export default function StatisticsPage() {
 
   const handlePrevious = () => {
     setCurrentDate(getPreviousPeriod(periodMode, currentDate));
+    setSelectedInsightIndex(null); // Reset selection when period changes
   };
 
   const handleNext = () => {
     setCurrentDate(getNextPeriod(periodMode, currentDate));
+    setSelectedInsightIndex(null); // Reset selection when period changes
+  };
+
+  const handleInsightClick = (index: number) => {
+    setSelectedInsightIndex(selectedInsightIndex === index ? null : index);
   };
 
   const chartData = stats.byCategory.map((c) => ({
@@ -43,7 +51,7 @@ export default function StatisticsPage() {
   const periodText = periodMode === 'day' ? '어제' : periodMode === 'week' ? '지난주' : '지난달';
   const currentPeriodText = periodMode === 'day' ? '오늘' : periodMode === 'week' ? '이번 주' : '이번 달';
 
-  // Period insights
+  // Period insights with filter metadata
   const insights = useMemo(() => {
     const result: Array<{
       type: 'warning' | 'alert' | 'info';
@@ -51,6 +59,8 @@ export default function StatisticsPage() {
       description: string;
       amount?: number;
       percentage?: number;
+      filterType: 'allExpense' | 'category';
+      categoryId?: string;
     }> = [];
 
     // High spending warning
@@ -59,7 +69,8 @@ export default function StatisticsPage() {
         type: 'warning',
         title: `${currentPeriodText} 지출이 수입보다 많습니다`,
         description: `${formatCurrency(stats.totalExpense - stats.totalIncome)} 적자`,
-        amount: stats.totalExpense - stats.totalIncome
+        amount: stats.totalExpense - stats.totalIncome,
+        filterType: 'allExpense'
       });
     }
 
@@ -69,7 +80,8 @@ export default function StatisticsPage() {
         type: 'alert',
         title: `${periodText} 대비 지출이 크게 증가했습니다`,
         description: `${periodText} 대비 크게 증가`,
-        percentage: stats.change.expenseChange
+        percentage: stats.change.expenseChange,
+        filterType: 'allExpense'
       });
     }
 
@@ -79,12 +91,38 @@ export default function StatisticsPage() {
         type: 'info',
         title: `${topCategory.categoryName}에서 가장 많이 지출했습니다`,
         description: `${topCategory.categoryName}에서 지출했습니다`,
-        percentage: topCategory.percentage
+        percentage: topCategory.percentage,
+        filterType: 'category',
+        categoryId: topCategory.categoryId
       });
     }
 
     return result;
   }, [stats, topCategory, periodText, currentPeriodText]);
+
+  // Filter transactions based on selected insight
+  const filteredTransactions = useMemo(() => {
+    if (selectedInsightIndex === null || !insights[selectedInsightIndex]) {
+      return [];
+    }
+
+    const insight = insights[selectedInsightIndex];
+    const currentTransactions = stats.currentTransactions || [];
+
+    if (insight.filterType === 'allExpense') {
+      // Show all expense transactions
+      return currentTransactions
+        .filter(tx => tx.type === 'EXPENSE')
+        .sort((a, b) => b.date.localeCompare(a.date));
+    } else if (insight.filterType === 'category' && insight.categoryId) {
+      // Show only expenses for specific category
+      return currentTransactions
+        .filter(tx => tx.type === 'EXPENSE' && tx.categoryId === insight.categoryId)
+        .sort((a, b) => b.date.localeCompare(a.date));
+    }
+
+    return [];
+  }, [selectedInsightIndex, insights, stats.currentTransactions]);
 
   // Dynamic trend chart title
   const trendChartTitle = periodMode === 'day'
@@ -112,9 +150,23 @@ export default function StatisticsPage() {
       {insights.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {insights.map((insight, index) => (
-            <InsightCard key={index} {...insight} />
+            <InsightCard
+              key={index}
+              {...insight}
+              onClick={() => handleInsightClick(index)}
+              isSelected={selectedInsightIndex === index}
+            />
           ))}
         </div>
+      )}
+
+      {/* Selected Insight Transaction List */}
+      {selectedInsightIndex !== null && filteredTransactions.length > 0 && (
+        <InsightTransactionList
+          transactions={filteredTransactions}
+          insightType={insights[selectedInsightIndex].type}
+          onClose={() => setSelectedInsightIndex(null)}
+        />
       )}
 
       {/* Main Statistics Section - 3 columns */}

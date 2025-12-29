@@ -8,6 +8,8 @@ interface InsightCardProps {
   description: string;
   amount?: number;
   percentage?: number;
+  onClick?: () => void;
+  isSelected?: boolean;
 }
 
 const iconMap = {
@@ -37,12 +39,23 @@ const styleMap = {
   }
 };
 
-export function InsightCard({ type, title, description, amount, percentage }: InsightCardProps) {
+export function InsightCard({ type, title, description, amount, percentage, onClick, isSelected }: InsightCardProps) {
   const Icon = iconMap[type];
   const styles = styleMap[type];
 
   return (
-    <div className={cn('p-4 rounded-lg border', styles.container)}>
+    <div
+      className={cn(
+        'p-4 rounded-lg border transition-all',
+        styles.container,
+        onClick && 'cursor-pointer hover:shadow-md',
+        isSelected && 'ring-2 ring-offset-2',
+        isSelected && type === 'warning' && 'ring-red-400',
+        isSelected && type === 'alert' && 'ring-orange-400',
+        isSelected && type === 'info' && 'ring-blue-400'
+      )}
+      onClick={onClick}
+    >
       <div className="flex items-start gap-3">
         <Icon className={cn('h-5 w-5 mt-0.5', styles.icon)} />
         <div className="flex-1 min-w-0">

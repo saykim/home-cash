@@ -132,6 +132,8 @@ export function usePeriodStats(
         netChange,
       },
       loading,
+      currentTransactions,
+      previousTransactions,
     };
   }, [currentTransactions, previousTransactions, allCategories, loading]);
 
