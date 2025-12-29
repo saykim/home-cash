@@ -72,14 +72,30 @@ export default function HomePage() {
     }
   };
 
-  const { totalIncome: monthIncome, totalExpense: monthExpense } =
-    usePeriodStats("month", new Date());
-
   /*
-   * Available Balance (수입 - (지출 + 결제예정))
-   * totalBillingAmount는 useCardPerformance에서 수기 입력값 포함하여 계산됨
+   * Available Balance 계산 로직 수정
+   * 기존: 수입 - 전체지출 - 청구금액 (신용카드 지출이 전체지출과 청구금액에서 이중 차감됨)
+   * 수정: 수입 - (전체지출 - 신용카드지출) - 청구금액
+   * 설명: '전체지출 - 신용카드지출'은 현금/체크카드 지출을 의미. 여기에 보정된(수기입력 포함) 청구금액을 뺌.
    */
-  const availableBalance = monthIncome - monthExpense - totalBillingAmount;
+  const {
+    totalIncome: monthIncome,
+    totalExpense: monthExpense,
+    currentTransactions,
+  } = usePeriodStats("month", new Date());
+
+  const monthCreditSpend = (currentTransactions || [])
+    .filter((t) => {
+      if (t.type !== "EXPENSE" || !t.cardId) return false;
+      const card = creditCards.find((c) => c.id === t.cardId);
+      return card?.cardType === "CREDIT";
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // 현금성 지출 (체크카드 포함, 신용카드 제외)
+  const monthCashExpense = monthExpense - monthCreditSpend;
+
+  const availableBalance = monthIncome - monthCashExpense - totalBillingAmount;
 
   // Upcoming payment notifications (신용카드만)
   const upcomingPayments = performances
