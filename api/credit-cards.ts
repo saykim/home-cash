@@ -34,7 +34,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .values({
           userId, // Auto-inject userId
           name: data.name,
-          cardType: data.cardType || "CREDIT",
           billingDay: data.billingDay,
           startOffset: data.startOffset,
           startDay: data.startDay,

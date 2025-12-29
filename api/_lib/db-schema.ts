@@ -39,7 +39,10 @@ export const assets = pgTable("assets", {
 export const assetBalanceHistory = pgTable("asset_balance_history", {
   id: uuid("id").defaultRandom().primaryKey(),
   assetId: uuid("asset_id").notNull(),
-  previousBalance: decimal("previous_balance", { precision: 15, scale: 2 }).notNull(),
+  previousBalance: decimal("previous_balance", {
+    precision: 15,
+    scale: 2,
+  }).notNull(),
   newBalance: decimal("new_balance", { precision: 15, scale: 2 }).notNull(),
   changedAt: timestamp("changed_at").notNull().defaultNow(),
 });
@@ -50,7 +53,10 @@ export const cardMonthlyPayments = pgTable("card_monthly_payments", {
   userId: uuid("user_id").notNull(),
   cardId: uuid("card_id").notNull(),
   month: text("month").notNull(),
-  expectedAmount: decimal("expected_amount", { precision: 15, scale: 2 }).notNull(),
+  expectedAmount: decimal("expected_amount", {
+    precision: 15,
+    scale: 2,
+  }).notNull(),
   memo: text("memo"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -88,7 +94,6 @@ export const creditCards = pgTable("credit_cards", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull(),
   name: text("name").notNull(),
-  cardType: text("card_type").notNull().default("CREDIT"),
   billingDay: integer("billing_day").notNull(),
   startOffset: integer("start_offset").notNull(),
   startDay: integer("start_day").notNull(),
