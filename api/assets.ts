@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { assets, assetBalanceHistory } from "./db-schema.js";
+import { assets, assetBalanceHistory } from "./_lib/db-schema.js";
 import { eq } from "drizzle-orm";
 import { createDb } from "./_lib/vercelDb.js";
 import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp.js";

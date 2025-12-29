@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { annualEvents } from "./db-schema.js";
+import { annualEvents } from "./_lib/db-schema.js";
 import { eq, and } from "drizzle-orm";
 import { createDb } from "./_lib/vercelDb.js";
 import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp.js";

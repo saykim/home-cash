@@ -4,7 +4,7 @@ import { neon } from "@neondatabase/serverless";
 import { eq } from "drizzle-orm";
 import { setCorsHeaders, sendError, getRequestId, HttpError } from "./_lib/vercelHttp.js";
 import { verifyAuth } from "./_lib/vercelAuth.js";
-import { users, categories, assets } from "./db-schema.js";
+import { users, categories, assets } from "./_lib/db-schema.js";
 
 function createDb() {
   const sqlClient = neon(process.env.DATABASE_URL!);

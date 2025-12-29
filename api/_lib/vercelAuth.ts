@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import type { NeonHttpDatabase } from "drizzle-orm/neon-http";
 import type { VercelRequest } from "@vercel/node";
 import { HttpError } from "./vercelHttp.js";
-import { users } from "../db-schema.js";
+import { users } from "./db-schema.js";
 
 /**
  * Shared mode (단일 데이터셋 공유)
