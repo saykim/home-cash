@@ -11,9 +11,12 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCardPerformance } from "@/hooks/useCardPerformance";
-import { usePeriodStats } from "@/hooks/usePeriodStats";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import {
+  getSalaryCategoryId,
+  calculateSalaryBasedBalance,
+} from "@/lib/salaryUtils";
 import {
   Wallet,
   TrendingUp,
@@ -23,7 +26,6 @@ import {
   Edit2,
   Check,
   X,
-  AlertCircle,
 } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -71,47 +73,36 @@ export default function HomePage() {
     }
   };
 
-  /*
-   * Available Balance 계산 로직 수정
-   * 기존: 수입 - 전체지출 - 청구금액 (신용카드 지출이 전체지출과 청구금액에서 이중 차감됨)
-   * 수정: 수입 - (전체지출 - 신용카드지출) - 청구금액
-   * 설명: '전체지출 - 신용카드지출'은 현금/체크카드 지출을 의미. 여기에 보정된(수기입력 포함) 청구금액을 뺌.
-   */
-  /*
-   * Available Balance 계산 로직 수정 (현금 흐름 모델)
-   * 1. monthIncome: 이번 달 총 수입
-   * 2. monthCashExpense: 현금성 지출 (전체 지출 - 신용카드 이용 금액)
-   * 3. billingAmountDueThisMonth: 이번 달에 결제일이 도래하는 카드 대금 (수기 보정 금액 반영)
-   * 공식: 수입 - 현금성지출 - 이번달 카드결제액
-   */
-  const {
-    totalIncome: monthIncome,
-    totalExpense: monthExpense,
-    currentTransactions,
-  } = usePeriodStats("month", new Date());
+  // 급여 기반 잔액 계산
+  const salaryCategoryId = getSalaryCategoryId(allCategories);
+  const salaryBalance = salaryCategoryId
+    ? calculateSalaryBasedBalance(transactions, salaryCategoryId)
+    : { totalSalary: 0, totalExpense: 0, balance: 0 };
 
-  // 신용카드 이용 금액 (이번 달 전체 지출 중 '카드'로 긁어서 아직 현금이 나가지 않은 금액)
-  // 거래 내역 중 cardId가 있는 지출을 모두 합산합니다.
-  const monthCreditSpend = (currentTransactions || [])
-    .filter(
-      (t: Transaction) =>
-        t.type === "EXPENSE" && t.cardId && t.cardId !== "NONE"
-    )
-    .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+  // 급여가 없는 경우 폴백: 이번 달 기준 계산
+  const thisMonth = format(new Date(), "yyyy-MM");
+  const monthTransactions = transactions.filter((t) =>
+    t.date.startsWith(thisMonth)
+  );
+  const fallbackIncome = monthTransactions
+    .filter((t) => t.type === "INCOME")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const fallbackExpense = monthTransactions
+    .filter((t) => t.type === "EXPENSE")
+    .reduce((sum, t) => sum + t.amount, 0);
 
-  // 현금성 지출 (수입에서 즉시 차감되는 지출: 전체 지출 - 카드 이용 금액)
-  const monthCashExpense = monthExpense - monthCreditSpend;
+  // 급여 기반 값 사용 (급여가 있으면), 없으면 폴백
+  const monthIncome = salaryBalance.totalSalary > 0 
+    ? salaryBalance.totalSalary 
+    : fallbackIncome;
+  const monthExpense = salaryBalance.totalSalary > 0 
+    ? salaryBalance.totalExpense 
+    : fallbackExpense;
+  const netIncome = salaryBalance.totalSalary > 0 
+    ? salaryBalance.balance 
+    : fallbackIncome - fallbackExpense;
 
-  // 이번 달 내에 '실제로' 납부해야 하는 카드 대금 합계 (수기 입력 보정값 반영)
-  const currentMonthStr = format(new Date(), "yyyy-MM");
-  const billingAmountDueThisMonth = performances
-    .filter(
-      (p) => p.nextBillingDate && p.nextBillingDate.startsWith(currentMonthStr)
-    )
-    .reduce((sum, p) => sum + p.billingAmount, 0);
 
-  const availableBalance =
-    monthIncome - monthCashExpense - billingAmountDueThisMonth;
 
   // Upcoming payment notifications (신용카드만)
   const upcomingPayments = performances
@@ -165,11 +156,10 @@ export default function HomePage() {
             variant="expense"
           />
           <DashboardKpiCard
-            title="가용 잔액"
-            amount={availableBalance}
-            icon={availableBalance >= 0 ? TrendingUp : AlertCircle}
-            variant={availableBalance >= 0 ? "net-positive" : "net-negative"}
-            subtitle="수입 - (지출 + 예정)"
+            title="잔액"
+            amount={netIncome}
+            icon={TrendingUp}
+            variant={netIncome >= 0 ? "net-positive" : "net-negative"}
           />
         </div>
       </div>
