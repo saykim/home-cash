@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PageHeader } from "@/components/common/PageHeader";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { PeriodSelector } from "@/components/common/PeriodSelector";
 import { PeriodNavigator } from "@/components/common/PeriodNavigator";
@@ -190,14 +191,16 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">거래 내역</h1>
-        <PeriodNavigator
-          label={periodRange.label}
-          onPrevious={handlePrevious}
-          onNext={handleNext}
-        />
-      </div>
+      <PageHeader
+        title="거래 내역"
+        action={
+          <PeriodNavigator
+            label={periodRange.label}
+            onPrevious={handlePrevious}
+            onNext={handleNext}
+          />
+        }
+      />
 
       {/* Period Selector */}
       <PeriodSelector value={periodMode} onChange={setPeriodMode} />

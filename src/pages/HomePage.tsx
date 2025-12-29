@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/common/PageHeader";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { AssetManagerDialog } from "@/components/assets/AssetManagerDialog";
 import { QuickActionsBar } from "@/components/home/QuickActionsBar";
+import { DashboardKpiCard } from "@/components/home/DashboardKpiCard";
 import { useAssets } from "@/hooks/useAssets";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
@@ -72,109 +74,44 @@ export default function HomePage() {
   return (
     <div className="space-y-3">
       {/* Header with Date */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {format(new Date(), "yyyy년 M월 d일 EEEE", { locale: ko })}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="대시보드"
+        description={format(new Date(), "yyyy년 M월 d일 EEEE", { locale: ko })}
+      />
 
       {/* Top KPI Bar - Hero Total Balance + 3 Metrics */}
       <div className="grid grid-cols-12 gap-4">
         {/* Total Balance - Hero Card (5 columns) */}
         <div className="col-span-5">
-          <Card className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 text-white border-0 shadow-xl h-full">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-medium text-slate-300 uppercase tracking-wider">
-                  총 자산
-                </span>
-                <Wallet className="h-4 w-4 text-slate-400" />
-              </div>
-              <div className="text-3xl font-bold tabular-nums tracking-tight mb-0.5">
-                {formatCurrency(totalBalance)}
-              </div>
-              <div className="text-xs text-slate-400">전체 자산 현황</div>
-            </CardContent>
-          </Card>
+          <DashboardKpiCard
+            title="총 자산"
+            amount={totalBalance}
+            icon={Wallet}
+            variant="hero"
+            subtitle="전체 자산 현황"
+          />
         </div>
 
         {/* Other 3 KPIs (7 columns) */}
         <div className="col-span-7 grid grid-cols-3 gap-4">
-          {/* Monthly Income */}
-          <Card className="border border-green-200 dark:border-green-900/50 bg-green-50/50 dark:bg-green-950/20">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] font-medium text-green-700 dark:text-green-400 uppercase tracking-wider">
-                  월 수입
-                </span>
-                <ArrowUpRight className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="text-xl font-bold text-green-700 dark:text-green-400 tabular-nums">
-                {formatCurrency(monthIncome)}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Monthly Expense */}
-          <Card className="border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] font-medium text-red-700 dark:text-red-400 uppercase tracking-wider">
-                  월 지출
-                </span>
-                <ArrowDownRight className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
-              </div>
-              <div className="text-xl font-bold text-red-700 dark:text-red-400 tabular-nums">
-                {formatCurrency(monthExpense)}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Net Income */}
-          <Card
-            className={cn(
-              "border",
-              netIncome >= 0
-                ? "border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20"
-                : "border-orange-200 dark:border-orange-900/50 bg-orange-50/50 dark:bg-orange-950/20"
-            )}
-          >
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-0.5">
-                <span
-                  className={cn(
-                    "text-[10px] font-medium uppercase tracking-wider",
-                    netIncome >= 0
-                      ? "text-blue-700 dark:text-blue-400"
-                      : "text-orange-700 dark:text-orange-400"
-                  )}
-                >
-                  순수익
-                </span>
-                <TrendingUp
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    netIncome >= 0
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-orange-600 dark:text-orange-400"
-                  )}
-                />
-              </div>
-              <div
-                className={cn(
-                  "text-xl font-bold tabular-nums",
-                  netIncome >= 0
-                    ? "text-blue-700 dark:text-blue-400"
-                    : "text-orange-700 dark:text-orange-400"
-                )}
-              >
-                {formatCurrency(netIncome)}
-              </div>
-            </CardContent>
-          </Card>
+          <DashboardKpiCard
+            title="월 수입"
+            amount={monthIncome}
+            icon={ArrowUpRight}
+            variant="income"
+          />
+          <DashboardKpiCard
+            title="월 지출"
+            amount={monthExpense}
+            icon={ArrowDownRight}
+            variant="expense"
+          />
+          <DashboardKpiCard
+            title="순수익"
+            amount={netIncome}
+            icon={TrendingUp}
+            variant={netIncome >= 0 ? "net-positive" : "net-negative"}
+          />
         </div>
       </div>
 

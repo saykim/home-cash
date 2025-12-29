@@ -41,6 +41,17 @@ export default {
         popover: {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))'
+        },
+        // Domain colors (Financial)
+        income: 'hsl(var(--income))',
+        expense: 'hsl(var(--expense))',
+        transfer: 'hsl(var(--transfer))',
+        // Status colors
+        status: {
+          success: 'hsl(var(--status-success))',
+          warning: 'hsl(var(--status-warning))',
+          danger: 'hsl(var(--status-danger))',
+          info: 'hsl(var(--status-info))'
         }
       },
       borderRadius: {
