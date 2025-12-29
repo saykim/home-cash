@@ -74,7 +74,7 @@ function CircularProgress({ percentage, size = 200, strokeWidth = 16 }: {
       {/* Center text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-3xl font-bold">{percentage.toFixed(0)}%</span>
-        <span className="text-sm text-muted-foreground">Used</span>
+        <span className="text-sm text-muted-foreground">사용됨</span>
       </div>
     </div>
   );
@@ -205,7 +205,7 @@ export default function BudgetPage() {
     <div className="space-y-6">
       {/* Header with Month Navigation */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Budget Management</h1>
+        <h1 className="text-2xl font-bold">예산 관리</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevMonth}>
             <ChevronLeft className="h-4 w-4" />
@@ -224,7 +224,7 @@ export default function BudgetPage() {
         {/* Left: Total Budget Overview */}
         <Card className="p-6">
           <CardHeader className="p-0 pb-4">
-            <CardTitle className="text-lg">Total Budget Overview</CardTitle>
+            <CardTitle className="text-lg">총 예산 현황</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="flex flex-col items-center">
@@ -233,7 +233,7 @@ export default function BudgetPage() {
 
               {/* Remaining Balance */}
               <div className="mt-4 text-center">
-                <p className="text-sm text-muted-foreground">Remaining Balance</p>
+                <p className="text-sm text-muted-foreground">남은 예산</p>
                 <p className={cn(
                   "text-3xl font-bold mt-1",
                   totalRemaining < 0 ? "text-red-600" : "text-foreground"
@@ -248,12 +248,12 @@ export default function BudgetPage() {
               {/* Total Budget / Used */}
               <div className="mt-6 pt-4 border-t w-full flex justify-around">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Total Budget</p>
+                  <p className="text-sm text-muted-foreground">총 예산</p>
                   <p className="text-lg font-semibold">{formatCurrency(totalBudget)}</p>
                 </div>
                 <div className="w-px bg-border" />
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Used</p>
+                  <p className="text-sm text-muted-foreground">사용됨</p>
                   <p className="text-lg font-semibold text-red-600">{formatCurrency(totalSpent)}</p>
                 </div>
               </div>
@@ -264,7 +264,7 @@ export default function BudgetPage() {
         {/* Right: Category Budgets */}
         <Card className="p-6">
           <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Category Budgets</CardTitle>
+            <CardTitle className="text-lg">카테고리별 예산</CardTitle>
             <Dialog open={dialogOpen} onOpenChange={(open) => {
               if (!open) resetForm();
               setDialogOpen(open);
@@ -272,7 +272,7 @@ export default function BudgetPage() {
               <DialogTrigger asChild>
                 <Button size="sm" disabled={categoriesWithoutBudget.length === 0}>
                   <Plus className="h-4 w-4 mr-1" />
-                  Add Category
+                  카테고리 추가
                 </Button>
               </DialogTrigger>
               <DialogContent>
