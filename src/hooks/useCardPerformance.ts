@@ -121,8 +121,7 @@ export function useCardPerformance(month?: string) {
         currentMonthSpend,
         currentMonthTransactions: cardTransactions.length,
         billingAmount, // Use manual amount if set, otherwise current spend
-        nextBillingDate:
-          cardType === "CREDIT" ? format(nextBillingDate, "yyyy-MM-dd") : "",
+        nextBillingDate: format(nextBillingDate, "yyyy-MM-dd"),
         achievedTiers: tierStatuses.filter((t) => t.achieved),
         nextTier,
         remainingForNextTier,

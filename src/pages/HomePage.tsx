@@ -87,15 +87,16 @@ export default function HomePage() {
   const { totalIncome: monthIncome, totalExpense: monthExpense } =
     usePeriodStats("month", new Date());
 
-  // 신용카드 이용 금액 (이번 달 지출 중 신용카드 긁은 금액)
-  const monthCreditSpend = performances
-    .filter((p) => p.cardType === "CREDIT")
-    .reduce((sum, p) => sum + p.currentMonthSpend, 0);
+  // 신용카드 이용 금액 (이번 달 전체 지출 중 '카드'로 긁어서 아직 현금이 나가지 않은 금액)
+  // 거래 내역 중 cardId가 있는 지출을 모두 합산합니다.
+  const monthCreditSpend = (transactions || [])
+    .filter((t) => t.type === "EXPENSE" && t.cardId && t.cardId !== "NONE")
+    .reduce((sum, t) => sum + t.amount, 0);
 
-  // 현금성 지출 (체크카드 포함, 신용카드 지출 제외)
+  // 현금성 지출 (수입에서 즉시 차감되는 지출: 전체 지출 - 카드 이용 금액)
   const monthCashExpense = monthExpense - monthCreditSpend;
 
-  // 이번 달 내에 납부해야 하는 카드 대금 합계 (수기 입력값 우선)
+  // 이번 달 내에 '실제로' 납부해야 하는 카드 대금 합계 (수기 입력 보정값 반영)
   const currentMonthStr = format(new Date(), "yyyy-MM");
   const billingAmountDueThisMonth = performances
     .filter(
