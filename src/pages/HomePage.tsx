@@ -11,6 +11,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCardPerformance } from "@/hooks/useCardPerformance";
+import { usePeriodStats } from "@/hooks/usePeriodStats";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import {
@@ -71,16 +72,9 @@ export default function HomePage() {
     }
   };
 
-  const thisMonth = format(new Date(), "yyyy-MM");
-  const monthTransactions = transactions.filter((t) =>
-    t.date.startsWith(thisMonth)
-  );
-  const monthIncome = monthTransactions
-    .filter((t) => t.type === "INCOME")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const monthExpense = monthTransactions
-    .filter((t) => t.type === "EXPENSE")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const { totalIncome: monthIncome, totalExpense: monthExpense } =
+    usePeriodStats("month", new Date());
+
   /*
    * Available Balance (수입 - (지출 + 결제예정))
    * totalBillingAmount는 useCardPerformance에서 수기 입력값 포함하여 계산됨
