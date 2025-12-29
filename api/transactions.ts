@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { transactions, assets } from "./_lib/db-schema.js";
+import { transactions, assets, creditCards } from "./_lib/db-schema.js";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { createDb } from "./_lib/vercelDb.js";
 import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp.js";
@@ -104,12 +104,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Sanitize assetId: convert empty string to null for UUID compatibility
-      const sanitizedAssetId = sanitizeString(data.assetId);
+      let sanitizedAssetId = sanitizeString(data.assetId);
 
       // 카드 지출인 경우 assetId가 없어도 됨
       const sanitizedCardId = sanitizeString(data.cardId);
       const isCardExpense = data.type === "EXPENSE" && sanitizedCardId && sanitizedCardId !== "NONE";
-      
+
+      // 직불카드인 경우 linkedAssetId를 assetId로 설정하여 즉시 차감
+      if (isCardExpense && sanitizedCardId) {
+        const [card] = await db
+          .select()
+          .from(creditCards)
+          .where(eq(creditCards.id, sanitizedCardId));
+
+        if (card && card.cardType === "DEBIT") {
+          sanitizedAssetId = card.linkedAssetId;
+        }
+      }
+
       if (!isCardExpense && !sanitizedAssetId) {
         return res.status(400).json({ error: "자산을 선택해주세요." });
       }

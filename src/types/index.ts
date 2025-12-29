@@ -7,6 +7,9 @@ export type CategoryKind = "INCOME" | "EXPENSE";
 // Transaction types
 export type TransactionType = "INCOME" | "EXPENSE" | "TRANSFER";
 
+// Card types
+export type CardType = "CREDIT" | "DEBIT";
+
 // Recurring frequency types
 export type RecurringFrequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 
@@ -74,6 +77,7 @@ export interface Transaction {
 export interface CreditCard {
   id: string;
   name: string;
+  cardType: CardType;
   billingDay: number;
   startOffset: number;
   startDay: number;

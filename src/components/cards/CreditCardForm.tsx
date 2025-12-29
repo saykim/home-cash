@@ -19,7 +19,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { useAssets } from '@/hooks/useAssets';
-import type { CreditCard } from '@/types';
+import type { CreditCard, CardType } from '@/types';
 
 interface CreditCardFormProps {
   mode?: 'create' | 'edit';
@@ -38,6 +38,7 @@ export function CreditCardForm({
 }: CreditCardFormProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
+  const [cardType, setCardType] = useState<CardType>('CREDIT');
   const [billingDay, setBillingDay] = useState('25');
   const [startOffset, setStartOffset] = useState('-1');
   const [startDay, setStartDay] = useState('1');
@@ -51,6 +52,7 @@ export function CreditCardForm({
   useEffect(() => {
     if (mode === 'edit' && card) {
       setName(card.name);
+      setCardType(card.cardType || 'CREDIT');
       setBillingDay(String(card.billingDay));
       setStartOffset(String(card.startOffset));
       setStartDay(String(card.startDay));
@@ -70,6 +72,7 @@ export function CreditCardForm({
 
     const payload = {
       name,
+      cardType,
       billingDay: Number(billingDay),
       startOffset: Number(startOffset),
       startDay: Number(startDay),
@@ -87,6 +90,7 @@ export function CreditCardForm({
     // Reset form (create 모드에서만)
     if (mode === 'create') {
       setName('');
+      setCardType('CREDIT');
       setBillingDay('25');
       setStartOffset('-1');
       setStartDay('1');
@@ -136,6 +140,22 @@ export function CreditCardForm({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="card-type">카드 종류</Label>
+            <Select value={cardType} onValueChange={(value) => setCardType(value as CardType)}>
+              <SelectTrigger id="card-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CREDIT">신용카드</SelectItem>
+                <SelectItem value="DEBIT">직불카드</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              직불카드는 사용 시 즉시 결제되며, 신용카드는 결제일에 일괄 결제됩니다.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="billing-day">결제일</Label>
             <Select value={billingDay} onValueChange={setBillingDay}>
               <SelectTrigger id="billing-day">
@@ -151,59 +171,63 @@ export function CreditCardForm({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>이용 기간 시작</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Select value={startOffset} onValueChange={setStartOffset}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="-1">전월</SelectItem>
-                  <SelectItem value="0">당월</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={startDay} onValueChange={setStartDay}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                    <SelectItem key={day} value={String(day)}>
-                      {day}일
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          {cardType === 'CREDIT' && (
+            <>
+              <div className="space-y-2">
+                <Label>이용 기간 시작</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select value={startOffset} onValueChange={setStartOffset}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="-1">전월</SelectItem>
+                      <SelectItem value="0">당월</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={startDay} onValueChange={setStartDay}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                        <SelectItem key={day} value={String(day)}>
+                          {day}일
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label>이용 기간 종료</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Select value={endOffset} onValueChange={setEndOffset}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="-1">전월</SelectItem>
-                  <SelectItem value="0">당월</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={endDay} onValueChange={setEndDay}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                    <SelectItem key={day} value={String(day)}>
-                      {day}일
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <div className="space-y-2">
+                <Label>이용 기간 종료</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select value={endOffset} onValueChange={setEndOffset}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="-1">전월</SelectItem>
+                      <SelectItem value="0">당월</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={endDay} onValueChange={setEndDay}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                        <SelectItem key={day} value={String(day)}>
+                          {day}일
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="linked-asset">연결 자산 (결제 계좌)</Label>

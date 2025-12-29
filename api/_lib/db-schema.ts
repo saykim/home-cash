@@ -88,6 +88,7 @@ export const creditCards = pgTable("credit_cards", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull(),
   name: text("name").notNull(),
+  cardType: text("card_type").notNull().default("CREDIT"),
   billingDay: integer("billing_day").notNull(),
   startOffset: integer("start_offset").notNull(),
   startDay: integer("start_day").notNull(),

@@ -1,9 +1,5 @@
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/common/PageHeader";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { AssetManagerDialog } from "@/components/assets/AssetManagerDialog";
@@ -14,16 +10,14 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCardPerformance } from "@/hooks/useCardPerformance";
-import { useCardMonthlyPayments } from "@/hooks/useCardMonthlyPayments";
 import { formatCurrency } from "@/lib/formatters";
-import { cn, formatAmountInput, parseFormattedAmount } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   Wallet,
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
   Bell,
-  Edit3,
 } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -36,17 +30,9 @@ export default function HomePage() {
   const { creditCards } = useCreditCards();
   const monthStr = format(new Date(), "yyyy-MM");
   const { performances } = useCardPerformance(monthStr);
-  const { payments, addPayment, updatePayment } = useCardMonthlyPayments(monthStr);
 
   const recentTransactions = transactions.slice(0, 12);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [editingPayment, setEditingPayment] = useState<{
-    cardId: string;
-    cardName: string;
-    existingPaymentId?: string;
-    currentAmount?: number;
-  } | null>(null);
-  const [expectedAmountInput, setExpectedAmountInput] = useState("");
 
   const handleSelectTransaction = (tx: Transaction) => {
     setEditingTransaction(tx);
@@ -56,52 +42,6 @@ export default function HomePage() {
     if (!open) {
       setEditingTransaction(null);
     }
-  };
-
-  const handleEditExpectedAmount = (cardId: string, cardName: string) => {
-    const existingPayment = payments.find((p) => p.cardId === cardId);
-    setEditingPayment({
-      cardId,
-      cardName,
-      existingPaymentId: existingPayment?.id,
-      currentAmount: existingPayment?.expectedAmount,
-    });
-    setExpectedAmountInput(
-      existingPayment ? formatAmountInput(String(existingPayment.expectedAmount)) : ""
-    );
-  };
-
-  const handleSaveExpectedAmount = async () => {
-    if (!editingPayment) return;
-
-    const parsedAmount = parseFormattedAmount(expectedAmountInput);
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-      alert("올바른 금액을 입력해주세요.");
-      return;
-    }
-
-    try {
-      if (editingPayment.existingPaymentId) {
-        await updatePayment(editingPayment.existingPaymentId, {
-          expectedAmount: parsedAmount,
-        });
-      } else {
-        await addPayment({
-          cardId: editingPayment.cardId,
-          month: monthStr,
-          expectedAmount: parsedAmount,
-        });
-      }
-      setEditingPayment(null);
-      setExpectedAmountInput("");
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "예상 결제액 저장에 실패했습니다.");
-    }
-  };
-
-  const handleCancelExpectedAmount = () => {
-    setEditingPayment(null);
-    setExpectedAmountInput("");
   };
 
   const thisMonth = format(new Date(), "yyyy-MM");
@@ -116,8 +56,9 @@ export default function HomePage() {
     .reduce((sum, t) => sum + t.amount, 0);
   const netIncome = monthIncome - monthExpense;
 
-  // Upcoming payment notifications
+  // Upcoming payment notifications (신용카드만)
   const upcomingPayments = performances
+    .filter(perf => perf.cardType === "CREDIT")
     .map((perf) => {
       const daysUntil = differenceInDays(
         parseISO(perf.nextBillingDate),
@@ -455,50 +396,12 @@ export default function HomePage() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        {payment.hasExpectedAmount ? (
-                          <>
-                            <div className="flex items-center justify-between">
-                              <p className="text-[10px] text-muted-foreground">예상 결제액</p>
-                              <button
-                                onClick={() =>
-                                  handleEditExpectedAmount(
-                                    payment.cardId,
-                                    payment.cardName
-                                  )
-                                }
-                                className="p-0.5 hover:bg-muted/50 rounded transition-colors"
-                              >
-                                <Edit3 className="h-2.5 w-2.5 text-muted-foreground" />
-                              </button>
-                            </div>
-                            <p className="font-bold text-base tabular-nums text-right">
-                              {formatCurrency(payment.expectedAmount!)}
-                            </p>
-                            <div className="pt-1 border-t">
-                              <p className="text-[10px] text-muted-foreground text-right">
-                                실제 이용: {formatCurrency(payment.currentMonthSpend)}
-                              </p>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex items-center justify-between">
-                              <p className="text-[10px] text-muted-foreground">이용 금액</p>
-                              <button
-                                onClick={() =>
-                                  handleEditExpectedAmount(payment.cardId, payment.cardName)
-                                }
-                                className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
-                              >
-                                <Edit3 className="h-2.5 w-2.5" />
-                                예상액 입력
-                              </button>
-                            </div>
-                            <p className="font-bold text-base tabular-nums text-right">
-                              {formatCurrency(payment.currentMonthSpend)}
-                            </p>
-                          </>
-                        )}
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] text-muted-foreground">이용 금액</p>
+                        </div>
+                        <p className="font-bold text-base tabular-nums text-right">
+                          {formatCurrency(payment.currentMonthSpend)}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -521,42 +424,6 @@ export default function HomePage() {
         expenseCategories={expenseCategories}
         creditCards={creditCards}
       />
-
-      {/* Expected Amount Dialog */}
-      <Dialog open={!!editingPayment} onOpenChange={(open) => !open && handleCancelExpectedAmount()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingPayment?.cardName} - 예상 결제액 {editingPayment?.existingPaymentId ? "수정" : "입력"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="expected-amount">예상 결제 금액</Label>
-              <Input
-                id="expected-amount"
-                type="text"
-                inputMode="numeric"
-                value={expectedAmountInput}
-                onChange={(e) => setExpectedAmountInput(formatAmountInput(e.target.value))}
-                placeholder="0"
-                className="text-right text-lg font-semibold"
-              />
-              <p className="text-xs text-muted-foreground">
-                이번 달 예상 결제 금액을 입력하세요. 실제 이용 금액과 함께 표시됩니다.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handleCancelExpectedAmount}>
-                취소
-              </Button>
-              <Button onClick={handleSaveExpectedAmount}>
-                {editingPayment?.existingPaymentId ? "수정" : "저장"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
