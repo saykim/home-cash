@@ -58,7 +58,7 @@ export default function HomePage() {
     }
   };
 
-  const handleEditExpectedAmount = (cardId: string, cardName: string, currentAmount?: number) => {
+  const handleEditExpectedAmount = (cardId: string, cardName: string) => {
     const existingPayment = payments.find((p) => p.cardId === cardId);
     setEditingPayment({
       cardId,
@@ -463,8 +463,7 @@ export default function HomePage() {
                                 onClick={() =>
                                   handleEditExpectedAmount(
                                     payment.cardId,
-                                    payment.cardName,
-                                    payment.expectedAmount
+                                    payment.cardName
                                   )
                                 }
                                 className="p-0.5 hover:bg-muted/50 rounded transition-colors"
