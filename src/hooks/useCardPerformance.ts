@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
-import { useTransactions } from './useTransactions';
-import { useCreditCards, useBenefitTiers } from './useCreditCards';
-import { format, addMonths } from 'date-fns';
-import type { CardType } from '@/types';
+import { useMemo, useState } from "react";
+import { useTransactions } from "./useTransactions";
+import { useCreditCards, useBenefitTiers } from "./useCreditCards";
+import { format, addMonths } from "date-fns";
+import type { CardType } from "@/types";
 
 interface CardPerformance {
   cardId: string;
@@ -26,19 +26,55 @@ interface BenefitTierStatus {
 }
 
 export function useCardPerformance(month?: string) {
-  const currentMonth = month || format(new Date(), 'yyyy-MM');
+  const currentMonth = month || format(new Date(), "yyyy-MM");
   const { transactions } = useTransactions(currentMonth);
   const { creditCards } = useCreditCards();
   const { allTiers } = useBenefitTiers();
+
+  /*
+   * localStorage 키 상수
+   *
+   * 참고: 실제 운영 환경에서는 DB에 저장하는 것이 좋습니다.
+   * 현재는 빠른 구현을 위해 localStorage를 사용합니다.
+   */
+  const STORAGE_KEY = "home_cash_manual_billing_amounts";
+
+  const [manualAmounts, setManualAmounts] = useState<Record<string, number>>(
+    () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : {};
+      } catch (e) {
+        console.error("Failed to load manual billing amounts", e);
+        return {};
+      }
+    }
+  );
+
+  const updateManualAmount = (cardId: string, amount: number | null) => {
+    setManualAmounts((prev: Record<string, number>) => {
+      const next = { ...prev };
+      if (amount === null) {
+        delete next[cardId];
+      } else {
+        next[cardId] = amount;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const performances = useMemo(() => {
     return creditCards.map((card): CardPerformance => {
       // Get card transactions for the month
       const cardTransactions = transactions.filter(
-        (tx) => tx.cardId === card.id && tx.type === 'EXPENSE'
+        (tx) => tx.cardId === card.id && tx.type === "EXPENSE"
       );
 
-      const currentMonthSpend = cardTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+      const currentMonthSpend = cardTransactions.reduce(
+        (sum, tx) => sum + tx.amount,
+        0
+      );
 
       // Get benefit tiers for this card
       const cardTiers = allTiers
@@ -50,24 +86,31 @@ export function useCardPerformance(month?: string) {
         threshold: tier.threshold,
         description: tier.description,
         achieved: currentMonthSpend >= tier.threshold,
-        progress: Math.min((currentMonthSpend / tier.threshold) * 100, 100)
+        progress: Math.min((currentMonthSpend / tier.threshold) * 100, 100),
       }));
 
       const nextTier = tierStatuses.find((t) => !t.achieved) || null;
-      const remainingForNextTier = nextTier ? nextTier.threshold - currentMonthSpend : 0;
+      const remainingForNextTier = nextTier
+        ? nextTier.threshold - currentMonthSpend
+        : 0;
 
-      // Calculate next billing date (신용카드만)
+      // Calculate next billing date
       const today = new Date();
-      let nextBillingDate = new Date();
+      const billingDay = card.billingDay;
+      let nextBillingDate = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        billingDay
+      );
 
-      if (card.cardType === "CREDIT") {
-        const billingDay = card.billingDay;
-        nextBillingDate = new Date(today.getFullYear(), today.getMonth(), billingDay);
-
-        if (today.getDate() >= billingDay) {
-          nextBillingDate = addMonths(nextBillingDate, 1);
-        }
+      if (today.getDate() >= billingDay) {
+        nextBillingDate = addMonths(nextBillingDate, 1);
       }
+
+      // Manual amount override
+      const manualAmount = manualAmounts[card.id];
+      const billingAmount =
+        manualAmount !== undefined ? manualAmount : currentMonthSpend;
 
       return {
         cardId: card.id,
@@ -75,21 +118,32 @@ export function useCardPerformance(month?: string) {
         cardType: card.cardType,
         currentMonthSpend,
         currentMonthTransactions: cardTransactions.length,
-        billingAmount: currentMonthSpend,
-        nextBillingDate: card.cardType === "CREDIT" ? format(nextBillingDate, 'yyyy-MM-dd') : '',
+        billingAmount, // Use manual amount if set, otherwise current spend
+        nextBillingDate:
+          card.cardType === "CREDIT"
+            ? format(nextBillingDate, "yyyy-MM-dd")
+            : "",
         achievedTiers: tierStatuses.filter((t) => t.achieved),
         nextTier,
-        remainingForNextTier
+        remainingForNextTier,
       };
     });
-  }, [creditCards, transactions, allTiers, currentMonth]);
+  }, [creditCards, transactions, allTiers, currentMonth, manualAmounts]);
 
-  const totalBillingAmount = performances.reduce((sum, p) => sum + p.billingAmount, 0);
-  const totalTransactions = performances.reduce((sum, p) => sum + p.currentMonthTransactions, 0);
+  const totalBillingAmount = performances.reduce(
+    (sum, p) => sum + p.billingAmount,
+    0
+  );
+  const totalTransactions = performances.reduce(
+    (sum, p) => sum + p.currentMonthTransactions,
+    0
+  );
 
   return {
     performances,
     totalBillingAmount,
-    totalTransactions
+    totalTransactions,
+    updateManualAmount,
+    manualAmounts,
   };
 }

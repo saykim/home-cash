@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/common/PageHeader";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { AssetManagerDialog } from "@/components/assets/AssetManagerDialog";
@@ -18,21 +19,47 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Bell,
+  Edit2,
+  Check,
+  X,
+  AlertCircle,
 } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { Transaction } from "@/types";
 
 export default function HomePage() {
-  const { allCategories, incomeCategories, expenseCategories } = useCategories();
-  const { assets, totalBalance, addAsset, updateAsset, deleteAsset } = useAssets();
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+  const { allCategories, incomeCategories, expenseCategories } =
+    useCategories();
+  const { assets, totalBalance, addAsset, updateAsset, deleteAsset } =
+    useAssets();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction } =
+    useTransactions();
   const { creditCards } = useCreditCards();
   const monthStr = format(new Date(), "yyyy-MM");
-  const { performances } = useCardPerformance(monthStr);
+  const { performances, updateManualAmount, totalBillingAmount } =
+    useCardPerformance(monthStr);
 
   const recentTransactions = transactions.slice(0, 12);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
+
+  // Manual billing amount editing state
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [tempAmount, setTempAmount] = useState<string>("");
+
+  const startEditing = (cardId: string, currentAmount: number) => {
+    setEditingCardId(cardId);
+    setTempAmount(currentAmount.toString());
+  };
+
+  const saveEditing = (cardId: string) => {
+    const amount = parseFloat(tempAmount);
+    if (!isNaN(amount)) {
+      updateManualAmount(cardId, amount);
+    }
+    setEditingCardId(null);
+  };
 
   const handleSelectTransaction = (tx: Transaction) => {
     setEditingTransaction(tx);
@@ -54,11 +81,15 @@ export default function HomePage() {
   const monthExpense = monthTransactions
     .filter((t) => t.type === "EXPENSE")
     .reduce((sum, t) => sum + t.amount, 0);
-  const netIncome = monthIncome - monthExpense;
+  /*
+   * Available Balance (수입 - (지출 + 결제예정))
+   * totalBillingAmount는 useCardPerformance에서 수기 입력값 포함하여 계산됨
+   */
+  const availableBalance = monthIncome - monthExpense - totalBillingAmount;
 
   // Upcoming payment notifications (신용카드만)
   const upcomingPayments = performances
-    .filter(perf => perf.cardType === "CREDIT")
+    .filter((perf) => perf.cardType === "CREDIT")
     .map((perf) => {
       const daysUntil = differenceInDays(
         parseISO(perf.nextBillingDate),
@@ -83,7 +114,7 @@ export default function HomePage() {
       {/* Top KPI Bar - Hero Total Balance + 3 Metrics */}
       <div className="grid grid-cols-12 gap-4">
         {/* Total Balance - Hero Card (5 columns) */}
-        <div className="col-span-5">
+        <div className="col-span-12 md:col-span-5">
           <DashboardKpiCard
             title="총 자산"
             amount={totalBalance}
@@ -94,7 +125,7 @@ export default function HomePage() {
         </div>
 
         {/* Other 3 KPIs (7 columns) */}
-        <div className="col-span-7 grid grid-cols-3 gap-4">
+        <div className="col-span-12 md:col-span-7 grid grid-cols-3 gap-4">
           <DashboardKpiCard
             title="월 수입"
             amount={monthIncome}
@@ -108,30 +139,30 @@ export default function HomePage() {
             variant="expense"
           />
           <DashboardKpiCard
-            title="순수익"
-            amount={netIncome}
-            icon={TrendingUp}
-            variant={netIncome >= 0 ? "net-positive" : "net-negative"}
+            title="가용 잔액"
+            amount={availableBalance}
+            icon={availableBalance >= 0 ? TrendingUp : AlertCircle}
+            variant={availableBalance >= 0 ? "net-positive" : "net-negative"}
+            subtitle="수입 - (지출 + 예정)"
           />
         </div>
       </div>
 
       {/* Quick Actions Navigation Bar */}
       <QuickActionsBar
-              assets={assets}
-              incomeCategories={incomeCategories}
-              expenseCategories={expenseCategories}
-              creditCards={creditCards}
-              addTransaction={addTransaction}
-              updateTransaction={updateTransaction}
-              deleteTransaction={deleteTransaction}
+        assets={assets}
+        incomeCategories={incomeCategories}
+        expenseCategories={expenseCategories}
+        creditCards={creditCards}
+        addTransaction={addTransaction}
+        updateTransaction={updateTransaction}
+        deleteTransaction={deleteTransaction}
       />
 
       {/* Main Dashboard Grid - 3 Columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
         {/* Left Column - Assets (4 columns) */}
         <div className="lg:col-span-4 space-y-4">
-
           {/* Assets Table */}
           <Card className="border">
             <CardHeader className="pb-2 border-b">
@@ -225,7 +256,6 @@ export default function HomePage() {
 
         {/* Middle Column - Recent Transactions (4 columns) */}
         <div className="lg:col-span-4 space-y-4">
-
           {/* Recent Transactions Table */}
           <Card className="border">
             <CardHeader className="pb-2 border-b">
@@ -334,7 +364,6 @@ export default function HomePage() {
 
         {/* Right Column - Upcoming Payments (4 columns) */}
         <div className="lg:col-span-4 space-y-4">
-
           {/* Upcoming Payments */}
           <Card className="border">
             <CardHeader className="pb-2 border-b">
@@ -397,11 +426,79 @@ export default function HomePage() {
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
-                          <p className="text-[10px] text-muted-foreground">이용 금액</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            이용 금액
+                          </p>
+                          {editingCardId === payment.cardId ? (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => saveEditing(payment.cardId)}
+                                className="p-0.5 hover:bg-green-100 rounded text-green-600"
+                              >
+                                <Check className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => setEditingCardId(null)}
+                                className="p-0.5 hover:bg-red-100 rounded text-red-600"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() =>
+                                startEditing(
+                                  payment.cardId,
+                                  payment.billingAmount
+                                )
+                              }
+                              className="text-[10px] text-muted-foreground hover:text-primary p-0.5 -mr-1"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </button>
+                          )}
                         </div>
-                        <p className="font-bold text-base tabular-nums text-right">
-                          {formatCurrency(payment.currentMonthSpend)}
-                        </p>
+
+                        {editingCardId === payment.cardId ? (
+                          <div className="flex justify-end">
+                            <Input
+                              type="number"
+                              value={tempAmount}
+                              onChange={(e) => setTempAmount(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter")
+                                  saveEditing(payment.cardId);
+                                if (e.key === "Escape") setEditingCardId(null);
+                              }}
+                              className="h-7 text-right w-24 text-sm px-2 py-1"
+                              autoFocus
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1.5">
+                            {payment.billingAmount !==
+                              payment.currentMonthSpend && (
+                              <span className="text-[10px] text-muted-foreground line-through">
+                                {formatCurrency(payment.currentMonthSpend)}
+                              </span>
+                            )}
+                            <p
+                              className={cn(
+                                "font-bold text-base tabular-nums text-right cursor-pointer hover:underline decoration-dashed decoration-muted-foreground/50",
+                                payment.billingAmount !==
+                                  payment.currentMonthSpend && "text-primary"
+                              )}
+                              onClick={() =>
+                                startEditing(
+                                  payment.cardId,
+                                  payment.billingAmount
+                                )
+                              }
+                            >
+                              {formatCurrency(payment.billingAmount)}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
