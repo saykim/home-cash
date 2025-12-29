@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/common/EmptyState';
 import { CreditCardForm } from '@/components/cards/CreditCardForm';
 import { BenefitTierForm } from '@/components/cards/BenefitTierForm';
 import { useCreditCards, useBenefitTiers } from '@/hooks/useCreditCards';
@@ -36,13 +37,11 @@ export default function CardsPage() {
       </div>
 
       {creditCards.length === 0 ? (
-        <Card className="p-12">
-          <div className="text-center text-muted-foreground">
-            <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p>등록된 카드가 없습니다</p>
-            <p className="text-sm mt-2">카드를 추가하여 실적과 혜택을 관리하세요</p>
-          </div>
-        </Card>
+        <EmptyState
+          icon={<CreditCard className="h-12 w-12" />}
+          title="등록된 카드가 없습니다"
+          description="카드를 추가하여 실적과 혜택을 관리하세요"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {creditCards.map((card) => {

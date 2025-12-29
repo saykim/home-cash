@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
+import { PageHeader } from '@/components/common/PageHeader';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useCategories } from '@/hooks/useCategories';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -203,21 +204,22 @@ export default function BudgetPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Month Navigation */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">예산 관리</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={prevMonth}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium min-w-[140px] text-center px-3 py-2 bg-muted rounded-lg">
-            {format(currentMonth, 'yyyy년 M월', { locale: ko })}
-          </span>
-          <Button variant="outline" size="icon" onClick={nextMonth}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="예산 관리"
+        action={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={prevMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-medium min-w-[140px] text-center px-3 py-2 bg-muted rounded-lg">
+              {format(currentMonth, 'yyyy년 M월', { locale: ko })}
+            </span>
+            <Button variant="outline" size="icon" onClick={nextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        }
+      />
 
       {/* Main Layout - Two Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

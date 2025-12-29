@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/common/PageHeader';
 import { PeriodSelector } from '@/components/common/PeriodSelector';
 import { PeriodNavigator } from '@/components/common/PeriodNavigator';
 import { CategoryPieChart } from '@/components/statistics/CategoryPieChart';
@@ -133,15 +134,16 @@ export default function StatisticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">통계</h1>
-        <PeriodNavigator
-          label={periodRange.label}
-          onPrevious={handlePrevious}
-          onNext={handleNext}
-        />
-      </div>
+      <PageHeader
+        title="통계"
+        action={
+          <PeriodNavigator
+            label={periodRange.label}
+            onPrevious={handlePrevious}
+            onNext={handleNext}
+          />
+        }
+      />
 
       {/* Period Selector */}
       <PeriodSelector value={periodMode} onChange={setPeriodMode} />
