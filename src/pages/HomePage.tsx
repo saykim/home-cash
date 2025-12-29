@@ -89,7 +89,7 @@ export default function HomePage() {
 
   // Upcoming payment notifications (신용카드만)
   const upcomingPayments = performances
-    .filter((perf) => perf.cardType === "CREDIT")
+    // .filter(perf => perf.cardType === "CREDIT") // cardType property might be missing in API response
     .map((perf) => {
       const daysUntil = differenceInDays(
         parseISO(perf.nextBillingDate),
@@ -100,7 +100,7 @@ export default function HomePage() {
         daysUntil,
       };
     })
-    .filter((p) => p.daysUntil >= 0 && p.daysUntil <= 7)
+    .filter((p) => p.daysUntil >= 0) // Show all future payments
     .sort((a, b) => a.daysUntil - b.daysUntil);
 
   return (
