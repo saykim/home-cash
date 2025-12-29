@@ -7,6 +7,16 @@ import { format, subMonths, addMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, TrendingUp, Target, Gift, CreditCard as CreditCardIcon } from 'lucide-react';
 
+// Card color scheme
+const cardColorSchemes = [
+  { primary: 'text-blue-600', secondary: 'text-blue-500', accent: 'border-blue-200', hover: 'hover:shadow-blue-100' },
+  { primary: 'text-purple-600', secondary: 'text-purple-500', accent: 'border-purple-200', hover: 'hover:shadow-purple-100' },
+  { primary: 'text-green-600', secondary: 'text-green-500', accent: 'border-green-200', hover: 'hover:shadow-green-100' },
+  { primary: 'text-orange-600', secondary: 'text-orange-500', accent: 'border-orange-200', hover: 'hover:shadow-orange-100' },
+  { primary: 'text-pink-600', secondary: 'text-pink-500', accent: 'border-pink-200', hover: 'hover:shadow-pink-100' },
+  { primary: 'text-indigo-600', secondary: 'text-indigo-500', accent: 'border-indigo-200', hover: 'hover:shadow-indigo-100' },
+];
+
 export default function CherryPickerPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStr = format(currentMonth, 'yyyy-MM');
@@ -77,19 +87,24 @@ export default function CherryPickerPage() {
           </div>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {performances.map((perf) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {performances.map((perf, index) => {
             const progressPercent = perf.nextTier
               ? Math.min((perf.currentMonthSpend / perf.nextTier.threshold) * 100, 100)
               : 100;
 
+            const colorScheme = cardColorSchemes[index % cardColorSchemes.length];
+
             return (
-              <Card key={perf.cardId}>
+              <Card
+                key={perf.cardId}
+                className={`transition-all duration-300 hover:shadow-lg ${colorScheme.hover} ${colorScheme.accent} border-2`}
+              >
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{perf.cardName}</CardTitle>
+                    <CardTitle className={`text-lg ${colorScheme.primary} font-bold`}>{perf.cardName}</CardTitle>
                     <div className="text-right">
-                      <p className="text-xl font-bold">{formatCurrency(perf.currentMonthSpend)}</p>
+                      <p className={`text-xl font-bold ${colorScheme.primary}`}>{formatCurrency(perf.currentMonthSpend)}</p>
                       <p className="text-xs text-muted-foreground">{perf.currentMonthTransactions}건</p>
                     </div>
                   </div>
@@ -99,11 +114,11 @@ export default function CherryPickerPage() {
                   {/* Next Billing */}
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-primary" />
+                      <TrendingUp className={`h-4 w-4 ${colorScheme.secondary}`} />
                       <span className="text-sm font-medium">다음 결제일</span>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold">{format(new Date(perf.nextBillingDate), 'M월 d일', { locale: ko })}</p>
+                      <p className={`text-sm font-semibold ${colorScheme.secondary}`}>{format(new Date(perf.nextBillingDate), 'M월 d일', { locale: ko })}</p>
                       <p className="text-xs text-muted-foreground">{formatCurrency(perf.billingAmount)}</p>
                     </div>
                   </div>
@@ -131,13 +146,13 @@ export default function CherryPickerPage() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="font-medium">다음 혜택까지</span>
-                        <span className="text-primary font-semibold">
+                        <span className={`${colorScheme.primary} font-semibold`}>
                           {formatCurrency(perf.remainingForNextTier)} 남음
                         </span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
                         <div
-                          className="bg-primary h-2 rounded-full transition-all"
+                          className={`h-2 rounded-full transition-all ${colorScheme.primary.replace('text-', 'bg-')}`}
                           style={{ width: `${progressPercent}%` }}
                         />
                       </div>
