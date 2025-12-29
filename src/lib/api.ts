@@ -74,6 +74,14 @@ export const assetsApi = {
     }).then((r) => handleResponse<{ success: boolean }>(r)),
 };
 
+// Asset Balance History API
+export const assetBalanceHistoryApi = {
+  getByAssetId: (assetId: string): Promise<any[]> =>
+    fetch(`${API_BASE}/asset-balance-history?assetId=${assetId}`, { headers: getHeaders() }).then((r) =>
+      handleResponse<any[]>(r)
+    ),
+};
+
 // Categories API
 export const categoriesApi = {
   getAll: (): Promise<any[]> =>
@@ -293,4 +301,32 @@ export const benefitTiersApi = {
     fetch(`${API_BASE}/benefit-tiers?id=${id}`, { method: "DELETE", headers: getHeaders() }).then(
       (r) => handleResponse<{ success: boolean }>(r)
     ),
+};
+
+// Card Monthly Payments API
+export const cardMonthlyPaymentsApi = {
+  getByMonth: (month: string): Promise<any[]> =>
+    fetch(`${API_BASE}/card-monthly-payments?month=${month}`, { headers: getHeaders() }).then((r) =>
+      handleResponse<any[]>(r)
+    ),
+
+  create: (data: any): Promise<any> =>
+    fetch(`${API_BASE}/card-monthly-payments`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    }).then((r) => handleResponse<any>(r)),
+
+  update: (id: string, data: any): Promise<any> =>
+    fetch(`${API_BASE}/card-monthly-payments?id=${id}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    }).then((r) => handleResponse<any>(r)),
+
+  delete: (id: string): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/card-monthly-payments?id=${id}`, {
+      method: "DELETE",
+      headers: getHeaders(),
+    }).then((r) => handleResponse<{ success: boolean }>(r)),
 };

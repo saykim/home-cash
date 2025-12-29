@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/formatters";
 import { formatAmountInput, parseFormattedAmount } from "@/lib/utils";
+import { useAssetBalanceHistory } from "@/hooks/useAssetBalanceHistory";
 import type { Asset, AssetType } from "@/types";
 
 interface AssetManagerDialogProps {
@@ -39,8 +40,17 @@ export function AssetManagerDialog({
   const [form, setForm] = useState<FormState>(defaultFormState);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [historyAssetId, setHistoryAssetId] = useState<string | null>(null);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   const isEditing = Boolean(editingId);
+  const { history, loading: historyLoading, fetchHistory } = useAssetBalanceHistory(historyAssetId);
+
+  useEffect(() => {
+    if (historyDialogOpen && historyAssetId) {
+      fetchHistory();
+    }
+  }, [historyDialogOpen, historyAssetId, fetchHistory]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
@@ -62,6 +72,16 @@ export function AssetManagerDialog({
       type: asset.type,
       balance: formatAmountInput(String(asset.balance)),
     });
+  };
+
+  const handleViewHistory = (assetId: string) => {
+    setHistoryAssetId(assetId);
+    setHistoryDialogOpen(true);
+  };
+
+  const handleHistoryDialogClose = () => {
+    setHistoryDialogOpen(false);
+    setHistoryAssetId(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -152,6 +172,9 @@ export function AssetManagerDialog({
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleViewHistory(asset.id)}>
+                        이력
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleEditClick(asset)}>
                         편집
                       </Button>
@@ -230,6 +253,55 @@ export function AssetManagerDialog({
           </section>
         </div>
       </DialogContent>
+
+      {/* Balance History Dialog */}
+      <Dialog open={historyDialogOpen} onOpenChange={(open) => !open && handleHistoryDialogClose()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>잔액 변경 이력</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {historyLoading ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                이력을 불러오는 중...
+              </div>
+            ) : history.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                변경 이력이 없습니다.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {history.map((item) => {
+                  const delta = item.newBalance - item.previousBalance;
+                  const isIncrease = delta > 0;
+                  return (
+                    <div key={item.id} className="p-3 border rounded-lg bg-muted/20">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">
+                            {formatCurrency(item.previousBalance)} → {formatCurrency(item.newBalance)}
+                          </p>
+                          <p className={`text-sm ${isIncrease ? "text-income" : "text-expense"}`}>
+                            {isIncrease ? "+" : ""}{formatCurrency(delta)}
+                          </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(item.changedAt).toLocaleString("ko-KR", {
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

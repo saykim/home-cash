@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useTransactions } from './useTransactions';
 import { useCreditCards, useBenefitTiers } from './useCreditCards';
+import { useCardMonthlyPayments } from './useCardMonthlyPayments';
 import { format, addMonths } from 'date-fns';
 
 interface CardPerformance {
@@ -9,6 +10,8 @@ interface CardPerformance {
   currentMonthSpend: number;
   currentMonthTransactions: number;
   billingAmount: number;
+  expectedAmount?: number; // 사용자가 입력한 예상 결제액
+  hasExpectedAmount: boolean; // 예상 금액 입력 여부
   nextBillingDate: string;
   achievedTiers: BenefitTierStatus[];
   nextTier: BenefitTierStatus | null;
@@ -28,6 +31,7 @@ export function useCardPerformance(month?: string) {
   const { transactions } = useTransactions(currentMonth);
   const { creditCards } = useCreditCards();
   const { allTiers } = useBenefitTiers();
+  const { payments } = useCardMonthlyPayments(currentMonth);
 
   const performances = useMemo(() => {
     return creditCards.map((card): CardPerformance => {
@@ -63,19 +67,29 @@ export function useCardPerformance(month?: string) {
         nextBillingDate = addMonths(nextBillingDate, 1);
       }
 
+      // Get expected amount if user has entered it
+      const monthlyPayment = payments.find((p) => p.cardId === card.id);
+      const hasExpectedAmount = Boolean(monthlyPayment);
+      const expectedAmount = monthlyPayment?.expectedAmount;
+
+      // Use expected amount if available, otherwise use current month spend
+      const billingAmount = hasExpectedAmount ? expectedAmount! : currentMonthSpend;
+
       return {
         cardId: card.id,
         cardName: card.name,
         currentMonthSpend,
         currentMonthTransactions: cardTransactions.length,
-        billingAmount: currentMonthSpend, // Simplified - same as monthly spend
+        billingAmount,
+        expectedAmount,
+        hasExpectedAmount,
         nextBillingDate: format(nextBillingDate, 'yyyy-MM-dd'),
         achievedTiers: tierStatuses.filter((t) => t.achieved),
         nextTier,
         remainingForNextTier
       };
     });
-  }, [creditCards, transactions, allTiers, currentMonth]);
+  }, [creditCards, transactions, allTiers, currentMonth, payments]);
 
   const totalBillingAmount = performances.reduce((sum, p) => sum + p.billingAmount, 0);
   const totalTransactions = performances.reduce((sum, p) => sum + p.currentMonthTransactions, 0);

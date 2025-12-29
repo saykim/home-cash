@@ -29,6 +29,24 @@ export interface Asset {
   updatedAt: string;
 }
 
+export interface AssetBalanceHistory {
+  id: string;
+  assetId: string;
+  previousBalance: number;
+  newBalance: number;
+  changedAt: string;
+}
+
+export interface CardMonthlyPayment {
+  id: string;
+  cardId: string;
+  month: string; // 'yyyy-MM'
+  expectedAmount: number;
+  memo?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Category {
   id: string;
   name: string;

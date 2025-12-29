@@ -35,6 +35,27 @@ export const assets = pgTable("assets", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Asset Balance History (자산 잔액 이력)
+export const assetBalanceHistory = pgTable("asset_balance_history", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  assetId: uuid("asset_id").notNull(),
+  previousBalance: decimal("previous_balance", { precision: 15, scale: 2 }).notNull(),
+  newBalance: decimal("new_balance", { precision: 15, scale: 2 }).notNull(),
+  changedAt: timestamp("changed_at").notNull().defaultNow(),
+});
+
+// Card Monthly Payments (카드 월별 결제 예정)
+export const cardMonthlyPayments = pgTable("card_monthly_payments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull(),
+  cardId: uuid("card_id").notNull(),
+  month: text("month").notNull(),
+  expectedAmount: decimal("expected_amount", { precision: 15, scale: 2 }).notNull(),
+  memo: text("memo"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Categories (카테고리)
 export const categories = pgTable("categories", {
   id: uuid("id").defaultRandom().primaryKey(),

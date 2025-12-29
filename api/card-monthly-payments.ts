@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { assets, assetBalanceHistory } from "./db-schema.js";
-import { eq } from "drizzle-orm";
+import { cardMonthlyPayments } from "./db-schema.js";
+import { eq, and } from "drizzle-orm";
 import { createDb } from "./_lib/vercelDb.js";
 import { getRequestId, sendError, setCorsHeaders } from "./_lib/vercelHttp.js";
 import { verifyAuth } from "./_lib/vercelAuth.js";
@@ -16,33 +16,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = createDb();
-
-    // Verify authentication and get user ID
     const userId = await verifyAuth(req, db);
 
-    // GET: 자산 조회 (공유 데이터셋 - userId 필터링 없음)
+    // GET: 월별 결제 예정 조회
     if (req.method === "GET") {
-      const result = await db.select().from(assets);
+      const { month } = req.query;
+      if (!month || typeof month !== "string") {
+        return res.status(400).json({ error: "Missing month parameter" });
+      }
+
+      const result = await db
+        .select()
+        .from(cardMonthlyPayments)
+        .where(
+          and(
+            eq(cardMonthlyPayments.userId, userId),
+            eq(cardMonthlyPayments.month, month)
+          )
+        );
+
       return res.status(200).json(result);
     }
 
-    // POST: 자산 추가
+    // POST: 결제 예정 추가
     if (req.method === "POST") {
       const data = req.body;
       const result = await db
-        .insert(assets)
+        .insert(cardMonthlyPayments)
         .values({
-          userId, // Auto-inject userId
-          name: data.name,
-          type: data.type,
-          balance: String(data.balance || data.initialBalance || 0),
-          initialBalance: String(data.initialBalance || 0),
+          userId,
+          cardId: data.cardId,
+          month: data.month,
+          expectedAmount: String(data.expectedAmount),
+          memo: data.memo,
         })
         .returning();
       return res.status(201).json(result[0]);
     }
 
-    // PUT: 자산 수정 (공유 데이터셋 - 소유권 체크 없음)
+    // PUT: 결제 예정 수정
     if (req.method === "PUT") {
       const { id } = req.query;
       const data = req.body;
@@ -50,55 +62,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Missing id" });
       }
 
-      // 잔액 변경 이력 기록을 위해 현재 자산 조회
-      if (data.balance !== undefined) {
-        const current = await db.select().from(assets).where(eq(assets.id, id));
-
-        if (current.length > 0 && current[0].balance !== String(data.balance)) {
-          // 잔액이 변경된 경우 이력 기록
-          await db.insert(assetBalanceHistory).values({
-            assetId: id,
-            previousBalance: current[0].balance,
-            newBalance: String(data.balance),
-          });
-        }
-      }
-
       const result = await db
-        .update(assets)
+        .update(cardMonthlyPayments)
         .set({
           ...data,
-          balance:
-            data.balance !== undefined ? String(data.balance) : undefined,
-          initialBalance:
-            data.initialBalance !== undefined
-              ? String(data.initialBalance)
+          expectedAmount:
+            data.expectedAmount !== undefined
+              ? String(data.expectedAmount)
               : undefined,
           updatedAt: new Date(),
         })
-        .where(eq(assets.id, id))
+        .where(
+          and(
+            eq(cardMonthlyPayments.id, id),
+            eq(cardMonthlyPayments.userId, userId)
+          )
+        )
         .returning();
 
       if (!result || result.length === 0) {
-        return res.status(404).json({ error: "Asset not found" });
+        return res.status(404).json({ error: "Record not found" });
       }
 
       return res.status(200).json(result[0]);
     }
 
-    // DELETE: 자산 삭제 (공유 데이터셋 - 소유권 체크 없음)
+    // DELETE: 결제 예정 삭제
     if (req.method === "DELETE") {
       const { id } = req.query;
       if (!id || typeof id !== "string") {
         return res.status(400).json({ error: "Missing id" });
       }
+
       const result = await db
-        .delete(assets)
-        .where(eq(assets.id, id))
+        .delete(cardMonthlyPayments)
+        .where(
+          and(
+            eq(cardMonthlyPayments.id, id),
+            eq(cardMonthlyPayments.userId, userId)
+          )
+        )
         .returning();
 
       if (!result || result.length === 0) {
-        return res.status(404).json({ error: "Asset not found" });
+        return res.status(404).json({ error: "Record not found" });
       }
 
       return res.status(200).json({ success: true });
